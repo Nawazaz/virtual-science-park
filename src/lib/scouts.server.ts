@@ -1,7 +1,7 @@
 import { publicDb } from './db.server';
 import { logRun } from './agent-runs.server';
 const stats={pastDropped:0,dupes:0};
-import { simulatedSamples,sourceNames,type OpportunityInput,type SourceName } from './opportunity-rules';
+import { simulatedSamples,sourceNames,legacySourceNames,newsFromPosts,testbedOpportunities,type OpportunityInput,type SourceName,type WpPost,type Testbed } from './opportunity-rules';
 const UA={'User-Agent':'VirtualScienceParkPrototype/1.0'};
 const strip=(s:string)=>s.replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&amp;/g,'&').replace(/&#8211;/g,'–').replace(/&#8217;/g,'’').replace(/&[a-z#0-9]+;/gi,' ').replace(/\s+/g,' ').trim();
 const clip=(s:string,n:number)=>s.length>n?s.slice(0,n-1)+'…':s;
@@ -49,17 +49,26 @@ async function euTenders():Promise<OpportunityInput[]>{
   if(out.length>=30)break;}
  return out;
 }
-const scouts:Record<SourceName,()=>Promise<OpportunityInput[]>>={'Vinnova':vinnova,'Blue Science Park events':bspEvents,'EU Funding & Tenders':euTenders};
+async function bspNews():Promise<OpportunityInput[]>{
+ const posts=await json('https://www.bluesciencepark.se/wp-json/wp/v2/posts?per_page=30&_fields=link,date,title,excerpt') as WpPost[];
+ if(!Array.isArray(posts))throw new Error('News feed returned an unexpected format');
+ const items=newsFromPosts(posts);stats.pastDropped+=posts.length-items.length;return items;
+}
+async function curatedTestbeds():Promise<OpportunityInput[]>{
+ const {data,error}=await publicDb().from('testbeds').select('*').eq('active',true);if(error)throw new Error(error.message);
+ return testbedOpportunities((data??[]) as Testbed[]);
+}
+const scouts:Record<SourceName,()=>Promise<OpportunityInput[]>>={'Vinnova':vinnova,'Blue Science Park events':bspEvents,'EU Funding & Tenders':euTenders,'Blue Science Park news':bspNews,'Curated by Blue Science Park staff':curatedTestbeds};
 export async function refreshSources(){
  const started=Date.now();stats.pastDropped=0;stats.dupes=0;const db=publicDb();const report:{source:string;status:string;message:string;found:number}[]=[];
  for(const source of sourceNames){
   let items:OpportunityInput[]=[];let status='ok';let message='';
-  try{items=await scouts[source]();message=items.length?`${items.length} current items found`:'Source worked but returned no current items; showing simulated samples';if(!items.length)status='empty';}
+  try{items=await scouts[source]();message=items.length?`${items.length} current items found`:'Source worked but returned no current items; showing simulated samples';if(!items.length)status='empty';if(source==='Curated by Blue Science Park staff'&&!items.length)message='No active testbeds yet; showing simulated samples';}
   catch(error){status='failed';message=`Source failed: ${error instanceof Error?error.message:'unknown error'}; showing simulated samples`;}
   const rows=items.length?items:simulatedSamples(source);
   const {error:upErr}=await db.from('opportunities').upsert(rows.map(r=>({...r,retrieved_at:new Date().toISOString()})),{onConflict:'external_key'});if(upErr)throw new Error(upErr.message);
   const keep=rows.map(r=>r.external_key);
-  const {data:old}=await db.from('opportunities').select('id,external_key').eq('source_name',source);
+  const {data:old}=await db.from('opportunities').select('id,external_key').in('source_name',[source,...(legacySourceNames[source]??[])]);
   const stale=(old??[]).filter(o=>!keep.includes(o.external_key)).map(o=>o.id);
   if(stale.length){const {error}=await db.from('opportunities').delete().in('id',stale);if(error)throw new Error(error.message);}
   await db.from('source_checks').upsert({source_name:source,last_checked:new Date().toISOString(),status,message,found:items.length});

@@ -7,3 +7,4 @@ async function streamJob(url:string,company_id:string,onProgress:(message:string
 }
 export const buildProfileClient=(id:string,p:(m:string)=>void,s:AbortSignal)=>streamJob('/api/public/build-profile',id,p,s);
 export const runMatchClient=(id:string,p:(m:string)=>void=()=>{},s?:AbortSignal)=>streamJob('/api/public/match',id,p,s);
+export const runNightlyClient=(p:(m:string)=>void=()=>{})=>streamJob('/api/public/nightly-run','',p);

@@ -16,3 +16,5 @@ export const runsQuery=queryOptions({queryKey:['runs'],queryFn:()=>listRuns()});
 import { getQualityMetrics,getStaffOverview } from './park.functions';
 export const qualityQuery=queryOptions({queryKey:['quality'],queryFn:()=>getQualityMetrics()});
 export const staffQuery=queryOptions({queryKey:['staff'],queryFn:()=>getStaffOverview()});
+import { getLatestRun } from './park.functions';
+export const nightlyQuery=queryOptions({queryKey:['run','Nightly run',null],queryFn:()=>getLatestRun({data:{agent:'Nightly run',company_id:null}})});

@@ -10,6 +10,9 @@ import { HowMadeLink } from '@/components/park/how-made';
 import { OpportunityCard } from '@/components/park/opportunity-card';
 import { fieldLabels } from '@/lib/profile-rules';
 import { FloatingAsk } from '@/components/park/chat-panel';
+import { isWeakBasis } from '@/lib/opportunity-rules';
+import { nightlyQuery } from '@/lib/company-queries';
+import { Moon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 export const Route=createFileRoute('/')({
  head:()=>({meta:[{title:'Dashboard | Virtual Science Park'},{name:'description',content:'A personalised digest of possible matches, changes and connections for a Blue Science Park member.'},{property:'og:title',content:'Dashboard | Virtual Science Park'},{property:'og:description',content:'Your top possible matches, what changed and possible connections.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),
@@ -20,6 +23,8 @@ const tiles=[{type:'funding',label:'Funding',Icon:HandCoins},{type:'event',label
 function Dashboard(){
  const {selected,companyId}=useViewingAs();
  const {data:d,isLoading}=useQuery({...dashboardQuery(companyId??''),enabled:!!companyId});
+ const {data:night}=useQuery(nightlyQuery);
+ const overnight=(date:string)=>{if(!night)return false;const t=Date.parse(date),s=Date.parse(night.started_at);return t>=s-1000&&t<=s+night.duration_ms+5000;};
  const {data:conns=[]}=useQuery({...connectionsQuery(companyId??''),enabled:!!companyId});
  if(!selected)return <ParkShell><EmptyState icon={<Building2/>} title="No members yet">Add the first member company on the Members page.</EmptyState></ParkShell>;
  if(isLoading||!d)return <ParkShell><Skeleton className="h-48 w-full rounded-[14px]"/><div className="mt-6 grid gap-4 md:grid-cols-4">{[0,1,2,3].map(i=><Skeleton key={i} className="h-24 rounded-[14px]"/>)}</div></ParkShell>;
@@ -38,12 +43,12 @@ function Dashboard(){
   <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
    <section><div className="mb-4 flex items-end justify-between"><h2 className="font-display text-2xl">Your top 5</h2><Link to="/opportunities" search={true} className="text-sm font-medium text-primary hover:underline">All opportunities</Link></div>
     {d.top.length===0?<EmptyState icon={<Sparkles/>} title="No possible matches yet">{d.itemCount?'Open Opportunities and run matching to rank what fits this company.':'Build the company profile first, then run matching.'}</EmptyState>:
-    <div className="space-y-3">{d.top.map(m=><OpportunityCard key={m.opportunity!.id} o={m.opportunity!} score={m.score} reason={m.reason} nextStep={m.next_step} companyId={d.company.id} compact/>)}</div>}
+    <div className="space-y-3">{d.top.map(m=><OpportunityCard key={m.opportunity!.id} o={m.opportunity!} score={m.score} reason={m.reason} nextStep={m.next_step} companyId={d.company.id} weakBasis={isWeakBasis(m.matched_profile_item_ids)} compact/>)}</div>}
    </section>
    <aside className="space-y-8">
     <section><h2 className="mb-4 flex items-center gap-2 font-display text-2xl"><History size={20} aria-hidden/>What changed</h2>
      {timeline.length===0?<p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Nothing new yet. Changes appear after a profile rebuild or source refresh.</p>:
-     <ol className="relative space-y-4 border-l pl-5">{timeline.map((t,i)=><li key={i} className="relative"><span className="absolute -left-[25px] top-1.5 size-2.5 rounded-full bg-primary" aria-hidden/><p className="flex items-center gap-2 text-xs text-muted-foreground">{fmtDate(t.date)}{t.sim&&<EvidenceBadge kind="simulated"/>}</p><p className="text-sm font-medium">{t.title}</p><p className="text-xs text-muted-foreground">{t.detail}</p><p className="text-xs"><span className="font-medium">Why it matters:</span> {t.why}</p></li>)}</ol>}
+     <ol className="relative space-y-4 border-l pl-5">{timeline.map((t,i)=><li key={i} className="relative"><span className="absolute -left-[25px] top-1.5 size-2.5 rounded-full bg-primary" aria-hidden/><p className="flex items-center gap-2 text-xs text-muted-foreground">{fmtDate(t.date)}{overnight(t.date)&&<span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"><Moon size={11} aria-hidden/>Found overnight</span>}{t.sim&&<EvidenceBadge kind="simulated"/>}</p><p className="text-sm font-medium">{t.title}</p><p className="text-xs text-muted-foreground">{t.detail}</p><p className="text-xs"><span className="font-medium">Why it matters:</span> {t.why}</p></li>)}</ol>}
     </section>
     <section><h2 className="mb-4 flex items-center gap-2 font-display text-2xl"><Network size={20} aria-hidden/>Possible connections</h2>
      {conns.length===0?<p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No overlaps found yet. Connections appear when two built profiles share topics.</p>:

@@ -402,6 +402,51 @@ export type Database = {
         }
         Relationships: []
       }
+      testbeds: {
+        Row: {
+          active: boolean
+          added_by: string
+          created_at: string
+          description: string
+          how_to_start: string
+          id: string
+          location: string
+          name: string
+          organisation: string
+          url: string
+          verified_on: string
+          what_you_can_test: string
+        }
+        Insert: {
+          active?: boolean
+          added_by?: string
+          created_at?: string
+          description?: string
+          how_to_start?: string
+          id?: string
+          location?: string
+          name: string
+          organisation?: string
+          url: string
+          verified_on?: string
+          what_you_can_test?: string
+        }
+        Update: {
+          active?: boolean
+          added_by?: string
+          created_at?: string
+          description?: string
+          how_to_start?: string
+          id?: string
+          location?: string
+          name?: string
+          organisation?: string
+          url?: string
+          verified_on?: string
+          what_you_can_test?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

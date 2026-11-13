@@ -11,6 +11,7 @@ import { ParkShell, PageHeader } from '@/components/park-shell';
 import { qualityQuery, runsQuery } from '@/lib/company-queries';
 import { runBoundaryTestsFn } from '@/lib/park.functions';
 import { boundaryTests } from '@/lib/park-rules';
+import { NightlyStatus } from '@/components/park/nightly-status';
 import { CheckRow, EvidenceBadge, fmtDate } from '@/components/park/evidence';
 export const Route=createFileRoute('/trust')({
  head:()=>({meta:[{title:'Trust & quality | Virtual Science Park'},{name:'description',content:'Quality checks, assistant boundary tests and agent run logs for Virtual Science Park.'},{property:'og:title',content:'Trust & quality | Virtual Science Park'},{property:'og:description',content:'Measured accuracy, traceability and interaction limits, shown honestly.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),
@@ -26,6 +27,7 @@ function Trust(){const {data:q}=useQuery(qualityQuery);const {data:runs=[]}=useQ
  const [bt,setBt]=useState<{results:BT[];passed:number;total:number}|null>(null);const [busy,setBusy]=useState(false);const [open,setOpen]=useState<(typeof runs)[number]|null>(null);
  const runAll=async()=>{setBusy(true);try{const r=await run();setBt(r);await Promise.all([qc.invalidateQueries({queryKey:['quality']}),qc.invalidateQueries({queryKey:['runs']})]);}catch(e){toast.error(e instanceof Error?e.message:'Tests failed');}finally{setBusy(false);}};
  return <ParkShell><PageHeader eyebrow="Transparency" title="Trust & quality">Measured on the live data. Failures are shown as they are.</PageHeader>
+  <NightlyStatus/>
   <Tabs defaultValue="quality"><TabsList className="mb-6"><TabsTrigger value="quality">Quality checks</TabsTrigger><TabsTrigger value="boundary">Boundary tests</TabsTrigger><TabsTrigger value="runs">Agent runs</TabsTrigger></TabsList>
    <TabsContent value="quality">{!q?<p className="text-sm text-muted-foreground">Measuring…</p>:<div className="grid gap-4 md:grid-cols-2">
     <Metric title="Profile accuracy" result={q.accuracy.value===null?'No data':`${q.accuracy.value}%`} pct={q.accuracy.value} target="90%" passed={q.accuracy.value===null?null:q.accuracy.value>=90} how={q.accuracy.detail}/>

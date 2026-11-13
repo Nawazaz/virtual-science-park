@@ -24,6 +24,8 @@ Built for the Campor × BUILD Hackathon 2026 (Blue Science Park challenge).
 | Trust & quality `/trust` | Quality checks, the 12 boundary tests run live, agent run log |
 | How it works `/about` | Agent roles, sources, matching formula, boundaries |
 
+A nightly run at 03:00 (Stockholm) refreshes sources, rebuilds profiles and re-ranks matches; staff can also run it on demand.
+
 Every result has a "How was this made?" link showing the agent run, its
 sources and each code check. Sample data is marked with an orange
 **Simulated** badge.
@@ -33,8 +35,8 @@ sources and each code check. Sample data is marked with an orange
 | Agent | AI does | Code checks (no AI) |
 |---|---|---|
 | **Profiler** | Reads company websites and member pages, proposes profile items with a quote and a link. | Quote must exist on the page or the item becomes "Inferred". Interests are always "Inferred". Empty fields become "Missing". Private network links blocked. |
-| **Scouts** | Nothing, or a short summary. | Fetch Vinnova, Blue Science Park events and EU Funding & Tenders (testing and news are simulated for now). Drop past deadlines, remove duplicates, every item has a link and a retrieved date. Fallback samples carry `simulated = true`. |
-| **Matcher** | Relevance 0-100, a reason, and the profile items it used. | Final score from a fixed formula. Drops reasons that cite unknown items. Blocks "eligible" wording. |
+| **Scouts** | Nothing, or a short summary. | Fetch Vinnova, Blue Science Park events, EU Funding & Tenders, Blue Science Park news, and testbeds curated by staff. Drop past deadlines, remove duplicates, every item has a link and a retrieved date. Fallback samples carry `simulated = true`. |
+| **Matcher** | Relevance 0-100, a reason, and the profile items it used. | `final = relevance × evidenceWeight (1.00 / 0.85 / 0.60 / 0.40) + 15 priority boost − 30 down vote`. Drops reasons that cite unknown items. Blocks "eligible" and "guaranteed". |
 | **Guard** | Classifies each chat message into one of six classes. | `decideReply` (fixed code) picks the reply. The assistant only loads the current company's data. 12 boundary tests run live on `/trust`. |
 | **Assistant** | Answers using only fetched data. | Every answer carries source links. Decisions go to Blue Science Park staff. |
 

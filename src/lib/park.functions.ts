@@ -23,7 +23,7 @@ export const getDashboard=createServerFn({method:'GET'}).inputValidator(id).hand
  const {publicDb}=await import('./db.server');const db=publicDb();
  const [c,m,o,ch]=await Promise.all([
   db.from('companies').select('id,name,website_url,profile_items(id,field,value,kind,confirmed_by_user,retrieved_at,source_url,evidence_quote)').eq('id',data.id).maybeSingle(),
-  db.from('matches').select('score,reason,next_step,opportunity:opportunities(id,type,title,deadline_or_date,source_name,source_url,simulated)').eq('company_id',data.id).order('score',{ascending:false}).limit(5),
+  db.from('matches').select('score,reason,next_step,matched_profile_item_ids,opportunity:opportunities(id,type,title,deadline_or_date,source_name,source_url,simulated)').eq('company_id',data.id).order('score',{ascending:false}).limit(5),
   db.from('opportunities').select('id,type,title,retrieved_at,simulated,source_name').order('retrieved_at',{ascending:false}),
   db.from('profile_changes').select('*').eq('company_id',data.id).order('changed_at',{ascending:false}).limit(10)]);
  for(const r of [c,m,o,ch])if(r.error)throw new Error(r.error.message);

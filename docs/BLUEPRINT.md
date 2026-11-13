@@ -54,6 +54,7 @@ evidenceWeight  1.00  best matched item is "Confirmed by company"
                 0.40  no valid matched item (card shows "weak basis")
 priorityBoost   +15   the type (funding, events...) is a chosen priority
 feedback        -30   the user voted this item down
+                -10   a similar title of the same type was voted down
 ```
 
 This is why two companies get different rankings, and why editing a profile

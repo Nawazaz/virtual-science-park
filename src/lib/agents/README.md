@@ -15,4 +15,5 @@ in `src/lib/`; do not move those files. This folder holds the shared types
 | Connections, dashboard | `src/lib/park.functions.ts` | `src/lib/park-rules.ts` (`connectionBasis`, `completeness`) | `park-rules.test.ts` |
 | Run log | `src/lib/agent-runs.server.ts` (writes `agent_runs`) | | |
 | "What changed" | database function `replace_generated_profile` writes `profile_changes` | | |
-| Nightly run | **not built yet** (`orchestrator.server.ts` describes it) | | |
+| Nightly run | `src/lib/nightly.server.ts`, cron route `src/routes/api/public/cron/nightly.ts` (03:00 Stockholm) | `src/lib/nightly-rules.ts` | |
+| News, testbeds | `src/lib/scouts.server.ts`, `src/lib/testbeds.functions.ts` | `src/lib/opportunity-rules.ts` (`newsFromPosts`, `testbedOpportunities`) | `sources.test.ts` |

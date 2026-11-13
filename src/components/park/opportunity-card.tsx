@@ -12,11 +12,11 @@ function Location({mode}:{mode?:string|undefined}){const m=mode==='online'?{I:Wi
 function KeyDate({text}:{text:string|null}){if(!text)return null;const iso=keyDate(text);const d=iso?daysUntil(iso):null;const urgent=d!==null&&d>=0&&d<14;
  return <span className={`inline-flex items-center gap-1 text-xs ${urgent?'font-semibold text-destructive':'text-muted-foreground'}`}><CalendarDays size={13} aria-hidden/>{text}{urgent&&` · ${d} day${d===1?'':'s'} left`}</span>;}
 const Block=({title,children,tone}:{title:string;children:ReactNode;tone?:'check'})=><div className={tone==='check'?'rounded-lg border border-inferred/50 bg-inferred/5 p-3':''}><p className={`text-xs font-semibold ${tone==='check'?'ink-inferred':'text-foreground'}`}>{title}</p><div className="text-sm text-muted-foreground">{children}</div></div>;
-export function OpportunityCard({o,score,reason,nextStep,checkFirst,companyId,usedItems,actions,compact}:{o:OppLite;score?:number|undefined;reason?:string|undefined;nextStep?:string|undefined;checkFirst?:string|undefined;companyId?:string|null|undefined;usedItems?:UsedItem[]|undefined;actions?:ReactNode;compact?:boolean}){
+export function OpportunityCard({o,score,reason,nextStep,checkFirst,companyId,usedItems,actions,compact,weakBasis}:{weakBasis?:boolean;o:OppLite;score?:number|undefined;reason?:string|undefined;nextStep?:string|undefined;checkFirst?:string|undefined;companyId?:string|null|undefined;usedItems?:UsedItem[]|undefined;actions?:ReactNode;compact?:boolean}){
  const ranked=score!==undefined;
  return <article className="surface fade-in p-5">
   <div className="flex gap-4"><div className="min-w-0 flex-1 space-y-2">
-   <div className="flex flex-wrap items-center gap-2"><TypePill type={o.type}/>{o.simulated&&<EvidenceBadge kind="simulated"/>}{o.type!=='news'&&<Location mode={o.location_mode}/>}</div>
+   <div className="flex flex-wrap items-center gap-2"><TypePill type={o.type}/>{o.simulated&&<EvidenceBadge kind="simulated"/>}{ranked&&weakBasis&&<span className="inline-flex items-center gap-1 rounded-full border border-inferred/60 bg-inferred/10 px-2 py-0.5 text-[11px] font-semibold ink-inferred" title="No valid profile item supports this match"><AlertTriangle size={12} aria-hidden/>Weak basis</span>}{o.type!=='news'&&<Location mode={o.location_mode}/>}</div>
    <h3 className="font-display text-lg leading-snug">{o.title}</h3>
    <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="text-xs text-muted-foreground">{o.source_name}</span><KeyDate text={o.deadline_or_date}/>{o.audience&&<span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Users size={13} aria-hidden/>Who it’s for: {o.audience}</span>}</div>
   </div>{ranked&&<MatchScore score={score}/>}</div>

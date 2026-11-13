@@ -22,7 +22,9 @@ import { Route as TrustRouteImport } from './routes/trust'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as ApiPublicBuildProfileRouteImport } from './routes/api/public/build-profile'
 import { Route as ApiPublicMatchRouteImport } from './routes/api/public/match'
+import { Route as ApiPublicNightlyRunRouteImport } from './routes/api/public/nightly-run'
 import { Route as CompaniesCompanyIdOpportunitiesRouteImport } from './routes/companies_.$companyId.opportunities'
+import { Route as ApiPublicCronNightlyRouteImport } from './routes/api/public/cron/nightly'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -89,12 +91,22 @@ const ApiPublicMatchRoute = ApiPublicMatchRouteImport.update({
   path: '/api/public/match',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicNightlyRunRoute = ApiPublicNightlyRunRouteImport.update({
+  id: '/api/public/nightly-run',
+  path: '/api/public/nightly-run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompaniesCompanyIdOpportunitiesRoute =
   CompaniesCompanyIdOpportunitiesRouteImport.update({
     id: '/companies_/$companyId/opportunities',
     path: '/companies/$companyId/opportunities',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronNightlyRoute = ApiPublicCronNightlyRouteImport.update({
+  id: '/api/public/cron/nightly',
+  path: '/api/public/cron/nightly',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,7 +122,9 @@ export interface FileRoutesByFullPath {
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/api/public/build-profile': typeof ApiPublicBuildProfileRoute
   '/api/public/match': typeof ApiPublicMatchRoute
+  '/api/public/nightly-run': typeof ApiPublicNightlyRunRoute
   '/companies/$companyId/opportunities': typeof CompaniesCompanyIdOpportunitiesRoute
+  '/api/public/cron/nightly': typeof ApiPublicCronNightlyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,7 +140,9 @@ export interface FileRoutesByTo {
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/api/public/build-profile': typeof ApiPublicBuildProfileRoute
   '/api/public/match': typeof ApiPublicMatchRoute
+  '/api/public/nightly-run': typeof ApiPublicNightlyRunRoute
   '/companies/$companyId/opportunities': typeof CompaniesCompanyIdOpportunitiesRoute
+  '/api/public/cron/nightly': typeof ApiPublicCronNightlyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,7 +159,9 @@ export interface FileRoutesById {
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/api/public/build-profile': typeof ApiPublicBuildProfileRoute
   '/api/public/match': typeof ApiPublicMatchRoute
+  '/api/public/nightly-run': typeof ApiPublicNightlyRunRoute
   '/companies_/$companyId/opportunities': typeof CompaniesCompanyIdOpportunitiesRoute
+  '/api/public/cron/nightly': typeof ApiPublicCronNightlyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,7 +179,9 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/api/public/build-profile'
     | '/api/public/match'
+    | '/api/public/nightly-run'
     | '/companies/$companyId/opportunities'
+    | '/api/public/cron/nightly'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,7 +197,9 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/api/public/build-profile'
     | '/api/public/match'
+    | '/api/public/nightly-run'
     | '/companies/$companyId/opportunities'
+    | '/api/public/cron/nightly'
   id:
     | '__root__'
     | '/'
@@ -193,7 +215,9 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/api/public/build-profile'
     | '/api/public/match'
+    | '/api/public/nightly-run'
     | '/companies_/$companyId/opportunities'
+    | '/api/public/cron/nightly'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,7 +234,9 @@ export interface RootRouteChildren {
   CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
   ApiPublicBuildProfileRoute: typeof ApiPublicBuildProfileRoute
   ApiPublicMatchRoute: typeof ApiPublicMatchRoute
+  ApiPublicNightlyRunRoute: typeof ApiPublicNightlyRunRoute
   CompaniesCompanyIdOpportunitiesRoute: typeof CompaniesCompanyIdOpportunitiesRoute
+  ApiPublicCronNightlyRoute: typeof ApiPublicCronNightlyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -306,11 +332,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/nightly-run': {
+      id: '/api/public/nightly-run'
+      path: '/api/public/nightly-run'
+      fullPath: '/api/public/nightly-run'
+      preLoaderRoute: typeof ApiPublicNightlyRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/companies_/$companyId/opportunities': {
       id: '/companies_/$companyId/opportunities'
       path: '/companies/$companyId/opportunities'
       fullPath: '/companies/$companyId/opportunities'
       preLoaderRoute: typeof CompaniesCompanyIdOpportunitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/nightly': {
+      id: '/api/public/cron/nightly'
+      path: '/api/public/cron/nightly'
+      fullPath: '/api/public/cron/nightly'
+      preLoaderRoute: typeof ApiPublicCronNightlyRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -330,7 +370,9 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,
   ApiPublicBuildProfileRoute: ApiPublicBuildProfileRoute,
   ApiPublicMatchRoute: ApiPublicMatchRoute,
+  ApiPublicNightlyRunRoute: ApiPublicNightlyRunRoute,
   CompaniesCompanyIdOpportunitiesRoute: CompaniesCompanyIdOpportunitiesRoute,
+  ApiPublicCronNightlyRoute: ApiPublicCronNightlyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
