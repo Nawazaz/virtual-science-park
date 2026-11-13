@@ -100,6 +100,31 @@ There's no password. The server still checks the choice on every request.
 Set `SESSION_SECRET` in `.env.local` to any long random text so sign-ins survive
 a restart.
 
+## Chat goes first (the dispatcher)
+
+One local model serves all four AI agents. Every call to Ollama goes through a
+small dispatcher (`src/lib/ai/dispatcher.ts`), which works in two lanes:
+
+- **Chat lane:** the Guard and the Assistant, where a person is waiting.
+- **Background lane:** the Profiler, the Matcher and the boundary tests.
+
+When the model frees up, a waiting chat call goes next, even if background
+calls were queued earlier. A call that is already running is never stopped,
+so a chat waits at most for one Matcher batch (6 opportunities). After a chat
+call, the model stays reserved for chat for 2 seconds, so the Guard and the
+answer run back to back. The Assistant's "How was this made?" sheet shows how
+long it waited.
+
+Every local reply also has a length cap (`LOCAL_CHAT_MAX_TOKENS`,
+`LOCAL_MAX_TOKENS`). Without it, a small model can get stuck repeating itself
+while writing JSON, and Ollama keeps generating forever. Every other agent
+then waits behind it. With the cap, that call fails with an error and the
+queue moves on.
+
+To scale up, raise `LOCAL_AI_SLOTS` together with Ollama's
+`OLLAMA_NUM_PARALLEL`, or point `OLLAMA_BASE_URL` at a bigger machine. The
+lanes stay the same.
+
 ## What to expect from a small local model
 
 - **Slower:** a profile build or a match run can take a few minutes on a
