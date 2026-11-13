@@ -6,8 +6,10 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { sessionQuery } from "../lib/company-queries";
 import { useEffect, type ReactNode } from "react";
 
 import { Toaster } from "sonner";
@@ -76,6 +78,12 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   validateSearch: (search: Record<string, unknown>): { company?: string } => (typeof search['company'] === 'string' && /^[0-9a-f-]{36}$/i.test(search['company']) ? { company: search['company'] } : {}),
+  // Sign-in first: someone who is neither signed in nor chose "Continue as visitor" goes to /sign-in, then back here.
+  beforeLoad: async ({ context, location }) => {
+    if (location.pathname === "/sign-in") return;
+    const session = await context.queryClient.ensureQueryData(sessionQuery);
+    if (session.viewer.kind === "guest" && !session.visitor) throw redirect({ to: "/sign-in", search: { redirect: location.href } });
+  },
   head: () => ({
     // Replace these placeholders with the app's name and description when first building the app.
     // Each content route, / included, must still set its own head(). Never add og:image or

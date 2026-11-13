@@ -18,5 +18,6 @@ export const qualityQuery=queryOptions({queryKey:['quality'],queryFn:()=>getQual
 export const staffQuery=queryOptions({queryKey:['staff'],queryFn:()=>getStaffOverview()});
 import { getLatestRun } from './park.functions';
 export const nightlyQuery=queryOptions({queryKey:['run','Nightly run',null],queryFn:()=>getLatestRun({data:{agent:'Nightly run',company_id:null}})});
-import { getViewer } from './access.functions';
+import { getSession, getViewer } from './access.functions';
 export const viewerQuery=queryOptions({queryKey:['viewer'],queryFn:()=>getViewer()});
+export const sessionQuery=queryOptions({queryKey:['session'],queryFn:()=>getSession()});

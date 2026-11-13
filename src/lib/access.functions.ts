@@ -8,6 +8,19 @@ export const getViewer = createServerFn({ method: 'GET' }).handler(async (): Pro
   return currentViewer();
 });
 
+/** Who is signed in, and whether a signed-out person chose to look around as a visitor. */
+export const getSession = createServerFn({ method: 'GET' }).handler(async (): Promise<{ viewer: Viewer; visitor: boolean }> => {
+  const { currentViewer, choseVisitor } = await import('./access.server');
+  return { viewer: currentViewer(), visitor: choseVisitor() };
+});
+
+export const continueAsVisitor = createServerFn({ method: 'POST' }).handler(async () => {
+  const { setViewer, setVisitorChoice } = await import('./access.server');
+  setViewer({ kind: 'guest' });
+  setVisitorChoice(true);
+  return { ok: true };
+});
+
 const wrongLogin = 'Email or password is incorrect.';
 
 /** Demo sign-in: email + password, checked on the server. Real accounts need Supabase Auth (Lovable). */
@@ -33,8 +46,9 @@ export const signIn = createServerFn({ method: 'POST' })
   });
 
 export const signOut = createServerFn({ method: 'POST' }).handler(async (): Promise<Viewer> => {
-  const { setViewer } = await import('./access.server');
+  const { setViewer, setVisitorChoice } = await import('./access.server');
   setViewer({ kind: 'guest' });
+  setVisitorChoice(false); // back to the sign-in page, not straight into visitor mode
   return { kind: 'guest' };
 });
 

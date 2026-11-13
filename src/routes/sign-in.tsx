@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { safeRedirect, useRefreshSession, useSignOut } from '@/components/park/access';
-import { getDemoAccounts, signIn } from '@/lib/access.functions';
+import { continueAsVisitor, getDemoAccounts, signIn } from '@/lib/access.functions';
 import { companiesQuery, viewerQuery } from '@/lib/company-queries';
 import { guestViewer } from '@/lib/access-rules';
 import { initials, staffName } from '@/lib/demo-accounts';
@@ -41,6 +41,7 @@ function SignInPage() {
   const navigate = useNavigate();
   const router = useRouter();
   const run = useServerFn(signIn);
+  const visitor = useServerFn(continueAsVisitor);
   const refresh = useRefreshSession();
   const signOutNow = useSignOut();
   const { data: viewer = guestViewer } = useQuery(viewerQuery);
@@ -73,6 +74,16 @@ function SignInPage() {
       passwordRef.current?.focus();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onVisitor() {
+    try {
+      await visitor();
+      await refresh();
+      router.history.push(safeRedirect(redirect));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not continue.');
     }
   }
 
@@ -165,9 +176,12 @@ function SignInPage() {
               ))}            </ul>
           </section>
 
-          <Link to="/" search={{}} className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-            Continue as visitor <ArrowRight size={14} aria-hidden />
-          </Link>
+          {!signedInAs && (
+            <button type="button" onClick={onVisitor} className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              Continue as visitor <ArrowRight size={14} aria-hidden />
+            </button>
+          )}
+          {!signedInAs && <p className="mt-1 text-xs text-muted-foreground">Visitors see public profiles only.</p>}
           <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground">Prototype accounts for the hackathon. The server checks the password and every request; real member accounts would use Supabase Auth.</p>
         </div>
       </main>

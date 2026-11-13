@@ -87,7 +87,9 @@ sees, so profiles you build or rebuild locally replace what the demo shows.
 
 ## Signing in (demo accounts)
 
-Press **Sign in** in the top bar, or open `/sign-in`. Every account uses the
+The site opens on the sign-in page until you sign in or choose **Continue as
+visitor**. The visitor choice lasts until the browser closes, and signing out
+brings the sign-in page back. Every account uses the
 demo password `bluepark2026`, which the sign-in page lists along with the
 accounts. Click an account there to fill in the form.
 

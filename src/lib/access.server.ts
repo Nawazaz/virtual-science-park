@@ -35,6 +35,18 @@ export function setViewer(viewer: Viewer) {
   setCookie(cookieName, token, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 8, secure: process.env['NODE_ENV'] === 'production' });
 }
 
+/**
+ * "Continue as visitor" on the sign-in page sets this cookie. Without a sign-in or this choice the
+ * site sends people to the sign-in page first. It lasts until the browser closes, so the sign-in
+ * page shows again next time.
+ */
+const visitorCookie = 'vsp_visitor';
+export const choseVisitor = () => getCookie(visitorCookie) === '1';
+export function setVisitorChoice(on: boolean) {
+  if (on) setCookie(visitorCookie, '1', { httpOnly: true, sameSite: 'lax', path: '/', secure: process.env['NODE_ENV'] === 'production' });
+  else deleteCookie(visitorCookie, { path: '/' });
+}
+
 /** Throws unless the viewer is this company or park staff. */
 export function requireProfileAccess(companyId: string) {
   if (!canSeeProfile(currentViewer(), companyId)) throw new Error(notAllowedMessage);
