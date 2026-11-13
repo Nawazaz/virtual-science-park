@@ -1,14 +1,16 @@
 # Known limitations and next steps
 
 ## Limitations
-- **Sign-in is simulated (local branch).** The top bar's "Signed in as" picks a
-  company, park staff or visitor without a password. The server checks a signed
-  session cookie on every request (`src/lib/access-rules.ts`, tested):
+- **Sign-in uses demo accounts (local branch).** `/sign-in` takes an email and
+  password. Each company gets `<name>@demo.vsp`, staff get `staff@demo.vsp`,
+  and all share one demo password (`DEMO_PASSWORD`). The server checks the
+  password, locks an email for a minute after 5 wrong tries, and checks a
+  signed session cookie on every request (`src/lib/access-rules.ts`, tested):
   - Other companies see only what the AI found on public pages: no company
     edits, priorities, rankings, saved items, change history or chats.
   - Park staff see profiles and rankings, but not chats or feedback.
   - Only the company itself can edit its profile, vote or use its assistant.
-  What is still missing: real accounts with passwords, and the same rules in the
+  What is still missing: real accounts, each with its own password, and the same rules in the
   database. The database still allows anonymous access, so anyone holding the
   publishable key could read it directly. Next step: Supabase Auth plus
   row-level security per company (a schema change made in Lovable).

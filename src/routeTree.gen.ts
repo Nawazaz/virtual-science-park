@@ -17,6 +17,7 @@ import { Route as ConnectionsRouteImport } from './routes/connections'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as MembersRouteImport } from './routes/members'
 import { Route as OpportunitiesRouteImport } from './routes/opportunities'
+import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as TrustRouteImport } from './routes/trust'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
@@ -64,6 +65,11 @@ const MembersRoute = MembersRouteImport.update({
 const OpportunitiesRoute = OpportunitiesRouteImport.update({
   id: '/opportunities',
   path: '/opportunities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffRoute = StaffRouteImport.update({
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/how-it-works': typeof HowItWorksRoute
   '/members': typeof MembersRoute
   '/opportunities': typeof OpportunitiesRoute
+  '/sign-in': typeof SignInRoute
   '/staff': typeof StaffRoute
   '/trust': typeof TrustRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof HowItWorksRoute
   '/members': typeof MembersRoute
   '/opportunities': typeof OpportunitiesRoute
+  '/sign-in': typeof SignInRoute
   '/staff': typeof StaffRoute
   '/trust': typeof TrustRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/how-it-works': typeof HowItWorksRoute
   '/members': typeof MembersRoute
   '/opportunities': typeof OpportunitiesRoute
+  '/sign-in': typeof SignInRoute
   '/staff': typeof StaffRoute
   '/trust': typeof TrustRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/members'
     | '/opportunities'
+    | '/sign-in'
     | '/staff'
     | '/trust'
     | '/companies/$companyId'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/members'
     | '/opportunities'
+    | '/sign-in'
     | '/staff'
     | '/trust'
     | '/companies/$companyId'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/members'
     | '/opportunities'
+    | '/sign-in'
     | '/staff'
     | '/trust'
     | '/companies/$companyId'
@@ -229,6 +241,7 @@ export interface RootRouteChildren {
   HowItWorksRoute: typeof HowItWorksRoute
   MembersRoute: typeof MembersRoute
   OpportunitiesRoute: typeof OpportunitiesRoute
+  SignInRoute: typeof SignInRoute
   StaffRoute: typeof StaffRoute
   TrustRoute: typeof TrustRoute
   CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
@@ -295,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/opportunities'
       fullPath: '/opportunities'
       preLoaderRoute: typeof OpportunitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff': {
@@ -365,6 +385,7 @@ const rootRouteChildren: RootRouteChildren = {
   HowItWorksRoute: HowItWorksRoute,
   MembersRoute: MembersRoute,
   OpportunitiesRoute: OpportunitiesRoute,
+  SignInRoute: SignInRoute,
   StaffRoute: StaffRoute,
   TrustRoute: TrustRoute,
   CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,

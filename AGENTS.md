@@ -30,7 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Application architecture
-- Public company reads and mutations use publishable-key server functions and explicit anonymous RLS. On the local branch every company read and write goes through the simulated sign-in (signed vsp_session cookie, access-rules.ts): other companies get public AI-found items only, staff see profiles and rankings, and only the company sees its chats and feedback or edits its profile. New server functions that return company data must apply the same rules.
+- Public company reads and mutations use publishable-key server functions and explicit anonymous RLS. On the local branch every company read and write goes through the demo-account sign-in (/sign-in checks email + DEMO_PASSWORD with a lockout, then sets a signed vsp_session cookie; rules in access-rules.ts and demo-accounts.ts): other companies get public AI-found items only, staff see profiles and rankings, and only the company sees its chats and feedback or edits its profile. New server functions that return company data must apply the same rules.
 - With a local model (OLLAMA_MODEL), every model call goes through the chat-first dispatcher in src/lib/ai/dispatcher.ts (lanes: chat = Guard and Assistant, background = Profiler, Matcher and boundary tests) and gets a reply-length cap. New agents pass their lane to agentModel().
 - Website profile building uses a streaming TanStack HTTP route and server-only AI modules; this avoids buffering long AI operations and keeps keys private.
 - Generated profiles are replaced atomically by a database function that preserves company-confirmed fields; rebuilds must never overwrite manual confirmation.

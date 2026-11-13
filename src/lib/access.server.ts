@@ -1,10 +1,24 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { deleteCookie, getCookie, setCookie } from '@tanstack/react-start/server';
 import { canActAs, canSeeProfile, notAllowedMessage, type Viewer } from './access-rules';
+import { SignInThrottle } from './demo-accounts';
 import { decodeViewer, encodeViewer } from './session-token.server';
 
 const cookieName = 'vsp_session';
-const store = globalThis as { __vspSessionSecret?: string };
+const store = globalThis as { __vspSessionSecret?: string; __vspThrottle?: SignInThrottle };
+
+/** The demo password, shown on the sign-in page unless DEMO_PASSWORD is set to a private one. */
+export const defaultDemoPassword = 'bluepark2026';
+export const demoPassword = () => process.env['DEMO_PASSWORD'] || defaultDemoPassword;
+export const demoPasswordIsPublic = () => !process.env['DEMO_PASSWORD'];
+
+/** Constant-time compare of hashes, so response time doesn't leak how much of the password matched. */
+export function passwordMatches(given: string) {
+  const h = (s: string) => createHash('sha256').update(s, 'utf8').digest();
+  return timingSafeEqual(h(given), h(demoPassword()));
+}
+
+export const signInThrottle = () => (store.__vspThrottle ??= new SignInThrottle());
 
 /** SESSION_SECRET keeps sign-ins across restarts; without it a random secret is used until the server stops. */
 function secret() {

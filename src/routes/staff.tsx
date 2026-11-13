@@ -6,7 +6,7 @@ import { EvidenceBadge, fmtDate, SourceChip } from '@/components/park/evidence';
 import { NightlyStatus } from '@/components/park/nightly-status';
 import { TestbedsAdmin } from '@/components/park/testbeds-admin';
 import { TypePill } from '@/components/park/opportunity-card';
-import { useSignIn } from '@/components/park/access';
+import { SignInButton } from '@/components/park/access';
 import { Button } from '@/components/ui/button';
 import { Lock } from 'lucide-react';
 export const Route=createFileRoute('/staff')({
@@ -14,7 +14,7 @@ export const Route=createFileRoute('/staff')({
  loader:({context})=>context.queryClient.ensureQueryData(companiesQuery),
  component:Staff,
 });
-function StaffNotice(){const signIn=useSignIn();return <div className="rounded-[14px] border border-dashed bg-card/50 p-5 text-sm" role="note"><p className="flex items-center gap-2 font-medium"><Lock size={15} aria-hidden/>For Blue Science Park staff</p><p className="mt-1 text-muted-foreground">Shared interests and common deadlines are built from every member's private profile and rankings, so only park staff see them.</p><Button size="sm" className="mt-3" onClick={()=>signIn('staff')}>Sign in as park staff</Button><p className="mt-2 text-[11px] text-muted-foreground">Sign-in is simulated in this prototype. The server still checks it on every request.</p></div>;}
+function StaffNotice(){return <div className="rounded-[14px] border border-dashed bg-card/50 p-5 text-sm" role="note"><p className="flex items-center gap-2 font-medium"><Lock size={15} aria-hidden/>For Blue Science Park staff</p><p className="mt-1 text-muted-foreground">Shared interests and common deadlines are built from every member's private profile and rankings, so only park staff see them.</p><div className="mt-3 flex flex-wrap items-center gap-3"><SignInButton/><span className="text-xs text-muted-foreground">Sign in with the park staff account to see this.</span></div></div>;}
 const H=({children}:{children:React.ReactNode})=><h2 className="mb-3 font-display text-2xl">{children}</h2>;
 function Staff(){useSuspenseQuery(companiesQuery);const {data:s}=useQuery(staffQuery);const {data:sources=[]}=useQuery(sourcesQuery);const {data:conn}=useQuery(allConnectionsQuery);
  const max=Math.max(1,...(s?.topics??[]).map(t=>t.members.length));

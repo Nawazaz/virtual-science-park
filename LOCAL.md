@@ -85,20 +85,28 @@ You can skip step 2 and use the database from your Lovable project:
 Local mode needs no admin key. **Careful:** this is the live database the jury
 sees, so profiles you build or rebuild locally replace what the demo shows.
 
-## Signing in (simulated)
+## Signing in (demo accounts)
 
-The top bar has **Signed in as**, with three choices:
+Press **Sign in** in the top bar, or open `/sign-in`. Every account uses the
+demo password `bluepark2026`, which the sign-in page lists along with the
+accounts. Click an account there to fill in the form.
 
-- **A company:** you see that company's full profile, rankings and chat, and you
-  can edit them. Other companies show only what the AI found on their public
-  pages.
-- **Blue Science Park staff:** you see every profile and ranking, plus the staff
-  page and Compare. Chats and feedback stay private to each company.
-- **Visitor:** you see public profiles only.
+- **A company** (`<company-name>@demo.vsp`, for example `njord-x@demo.vsp`):
+  you see that company's full profile, rankings and chat, and you can edit
+  them. Other companies show only what the AI found on their public pages.
+- **Blue Science Park staff** (`staff@demo.vsp`): you see every profile and
+  ranking, plus the staff page and Compare. Chats and feedback stay private to
+  each company.
+- **Visitor** (not signed in): you see public profiles only.
 
-There's no password. The server still checks the choice on every request.
-Set `SESSION_SECRET` in `.env.local` to any long random text so sign-ins survive
-a restart.
+The server checks the password, and checks the session cookie on every request.
+After 5 wrong passwords an email is locked for a minute. When signed in, the
+account menu (your initials, top right) has **Switch account** and **Sign out**.
+
+- Set `SESSION_SECRET` in `.env.local` to any long random text so sign-ins
+  survive a restart.
+- Set `DEMO_PASSWORD` to use your own password. The sign-in page then hides it
+  and shows only the emails.
 
 ## Chat goes first (the dispatcher)
 
