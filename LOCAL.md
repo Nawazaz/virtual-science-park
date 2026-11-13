@@ -107,8 +107,9 @@ profiles first.
 ## Signing in (demo accounts)
 
 The site opens on the sign-in page until you sign in or choose **Continue as
-visitor**. The visitor choice lasts until the browser closes, and signing out
-brings the sign-in page back. Every account uses the
+visitor**. Signing in and the visitor choice both last until you close the
+browser or restart the app (`npm run dev:local`), so starting the website
+always opens on the sign-in page. Signing out brings it back too. Every account uses the
 demo password `bluepark2026`, which the sign-in page lists along with the
 accounts. Click an account there to fill in the form.
 
@@ -124,8 +125,8 @@ The server checks the password, and checks the session cookie on every request.
 After 5 wrong passwords an email is locked for a minute. When signed in, the
 account menu (your initials, top right) has **Switch account** and **Sign out**.
 
-- Set `SESSION_SECRET` in `.env.local` to any long random text so sign-ins
-  survive a restart.
+- Set `SESSION_SECRET` in `.env.local` to any long random text. It signs the
+  session cookie so the browser can't fake who is signed in.
 - Set `DEMO_PASSWORD` to use your own password. The sign-in page then hides it
   and shows only the emails.
 
