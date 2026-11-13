@@ -2,13 +2,14 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { companySchema, itemSchema, priorities } from './profile-rules';
 import { visibleCompany } from './access-rules';
+import { isListed } from './hidden-companies';
 const viewer=async()=>(await import('./access.server')).currentViewer();
 export const listCompanies=createServerFn({method:'GET'}).handler(async()=>{
  const {publicDb}=await import('./db.server');const db=publicDb();const v=await viewer();
- const {data,error}=await db.from('companies').select('id,name,website_url,created_at,profile_items(id,field,value,kind,confirmed_by_user),company_priorities(priority)').order('created_at',{ascending:false});if(error)throw new Error(error.message);return (data??[]).map(c=>visibleCompany(v,c));
+ const {data,error}=await db.from('companies').select('id,name,website_url,created_at,profile_items(id,field,value,kind,confirmed_by_user),company_priorities(priority)').order('created_at',{ascending:false});if(error)throw new Error(error.message);return (data??[]).filter(isListed).map(c=>visibleCompany(v,c));
 });
 export const getCompany=createServerFn({method:'GET'}).inputValidator(z.object({id:z.string().uuid()})).handler(async({data})=>{
- const {publicDb}=await import('./db.server');const db=publicDb(); const {data:company,error}=await db.from('companies').select('id,name,website_url,member_page_url,created_at,profile_items(*),company_priorities(priority)').eq('id',data.id).maybeSingle();if(error)throw new Error(error.message);return company?visibleCompany(await viewer(),company):null;
+ const {publicDb}=await import('./db.server');const db=publicDb(); const {data:company,error}=await db.from('companies').select('id,name,website_url,member_page_url,created_at,profile_items(*),company_priorities(priority)').eq('id',data.id).maybeSingle();if(error)throw new Error(error.message);return isListed(company)?visibleCompany(await viewer(),company!):null;
 });
 export const addCompany=createServerFn({method:'POST'}).inputValidator(companySchema).handler(async({data})=>{
  const {publicDb}=await import('./db.server');const {data:row,error}=await publicDb().from('companies').insert({name:data.name,website_url:data.website_url,member_page_url:data.member_page_url??null}).select().single();if(error)throw new Error(error.message);return row;

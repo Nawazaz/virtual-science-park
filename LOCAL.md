@@ -41,9 +41,13 @@ better profiles and Guard decisions if your hardware allows it: change
 1. Sign up at [supabase.com](https://supabase.com) and create a new project
    (free tier, region close to you).
 2. Open **SQL Editor**, paste the whole of [`local/setup.sql`](local/setup.sql)
-   and click **Run**. It creates all tables, seeds Njord X, WIP and
-   Kingspan BAGA, and adds the sample testing items.
-3. Open **Project Settings → API keys** and copy the project URL, the
+   and click **Run**. It creates all tables, adds 5 member companies (Njord X,
+   WIP, Kingspan BAGA, Ocean Harvesting, Techinova) and the sample testing items.
+3. Open a **New query**, paste the whole of
+   [`local/companies-verified.sql`](local/companies-verified.sql) and click
+   **Run**. It fills in the 5 companies' profiles, checked by hand against
+   their public pages (every fact has a quote and a link).
+4. Open **Project Settings → API keys** and copy the project URL, the
    publishable key and the secret (service role) key.
 
 ## 3. Fill in your settings (one time)
@@ -52,7 +56,7 @@ better profiles and Guard decisions if your hardware allows it: change
 copy .env.local.example .env.local
 ```
 
-Open `.env.local` and paste the values from step 2. It is never committed
+Open `.env.local` and paste the values from step 4. It is never committed
 (`*.local` is in `.gitignore`), so the keys stay on your PC.
 
 ## 4. Run it
@@ -84,6 +88,21 @@ You can skip step 2 and use the database from your Lovable project:
 `copy .env .env.local`, then add the Ollama lines from `.env.local.example`.
 Local mode needs no admin key. **Careful:** this is the live database the jury
 sees, so profiles you build or rebuild locally replace what the demo shows.
+
+To put the 5 checked company profiles into this database, run this once (it
+uses the app's own key, so no SQL editor is needed):
+
+```bash
+npm run companies:local
+```
+
+The placeholder "Example Company" stays in this database, because the app's
+key may not delete companies; the app hides it (`src/lib/hidden-companies.ts`).
+With your own Supabase project, run
+[`local/companies-verified.sql`](local/companies-verified.sql) in its SQL
+editor instead: it deletes the placeholder too. Clicking **Build profile** on one of them afterwards replaces the
+checked profile with the AI's version, so for the demo show the checked
+profiles first.
 
 ## Signing in (demo accounts)
 

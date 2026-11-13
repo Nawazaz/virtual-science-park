@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import type { Viewer } from './access-rules';
 import { accountFor, emailFor, staffEmail, staffName } from './demo-accounts';
+import { isListed } from './hidden-companies';
 
 export const getViewer = createServerFn({ method: 'GET' }).handler(async (): Promise<Viewer> => {
   const { currentViewer } = await import('./access.server');
@@ -34,7 +35,7 @@ export const signIn = createServerFn({ method: 'POST' })
     const { publicDb } = await import('./db.server');
     const { data: companies, error } = await publicDb().from('companies').select('id,name');
     if (error) throw new Error(error.message);
-    const viewer = accountFor(data.email, companies ?? []);
+    const viewer = accountFor(data.email, (companies ?? []).filter(isListed));
     // Same message whether the email or the password is wrong, so emails can't be probed.
     if (!passwordMatches(data.password) || !viewer) {
       throttle.failed(data.email);
@@ -62,7 +63,7 @@ export const getDemoAccounts = createServerFn({ method: 'GET' }).handler(async (
     password: demoPasswordIsPublic() ? demoPassword() : null,
     accounts: [
       { name: staffName, email: staffEmail, role: 'Park staff' },
-      ...(data ?? []).map((c) => ({ name: c.name, email: emailFor(c.name), role: 'Member company' })),
+      ...(data ?? []).filter(isListed).map((c) => ({ name: c.name, email: emailFor(c.name), role: 'Member company' })),
     ],
   };
 });

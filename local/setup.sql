@@ -165,7 +165,9 @@ INSERT INTO public.companies(name, website_url, member_page_url)
 SELECT v.name, v.url, v.member FROM (VALUES
  ('Njord X','https://www.njordx.com','https://www.bluesciencepark.se/medlem/njord-x/'),
  ('WIP','https://www.wip.se','https://www.bluesciencepark.se/medlem/wip/'),
- ('Kingspan BAGA','https://www.kingspan.com/se/sv/affarsenheter/Kingspan-water-energy/kingspan-baga/','https://www.bluesciencepark.se/medlem/kingspan-baga/')
+ ('Kingspan BAGA','https://www.kingspan.com/se/sv/affarsenheter/Kingspan-water-energy/kingspan-baga/','https://www.bluesciencepark.se/medlem/kingspan-baga/'),
+ ('Ocean Harvesting','https://www.oceanharvesting.com','https://www.bluesciencepark.se/medlem/ocean-harvesting/'),
+ ('Techinova','https://www.techinova.se','https://www.bluesciencepark.se/medlem/techinova/')
 ) AS v(name,url,member)
 WHERE NOT EXISTS (SELECT 1 FROM public.companies c WHERE lower(c.name)=lower(v.name));
 

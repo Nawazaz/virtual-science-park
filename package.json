@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "nightly:local": "node --env-file=.env.local scripts/nightly-local.mjs"
+    "nightly:local": "node --env-file=.env.local scripts/nightly-local.mjs",
+    "companies:local": "node --env-file=.env.local local/apply-companies.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

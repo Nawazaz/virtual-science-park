@@ -1,6 +1,7 @@
 import { publicDb } from './db.server';
 import { logRun, type Check } from './agent-runs.server';
 import type { NightlySummary } from './nightly-rules';
+import { isListed } from './hidden-companies';
 /** Refresh sources, rebuild every profile, re-match every company. One company at a time; failures are recorded, never fatal. */
 export async function runNightly(request:Request,emit:(e:object)=>void=()=>{}){
  const started=Date.now();const since=new Date(started).toISOString();const db=publicDb();
@@ -10,7 +11,7 @@ export async function runNightly(request:Request,emit:(e:object)=>void=()=>{}){
  try{const {refreshSources}=await import('./scouts.server');const r=await refreshSources();r.forEach(x=>sources.add(x.source));const bad=r.filter(x=>x.status!=='ok');checks.push({name:'1. Sources refreshed',passed:true,detail:bad.length?`${r.length-bad.length}/${r.length} live; ${bad.map(b=>b.source).join(', ')} showing samples`:`${r.length}/${r.length} sources live`});}
  catch(e){const m=e instanceof Error?e.message:'error';failures.push({step:'sources',message:m});checks.push({name:'1. Sources refreshed',passed:false,detail:m});}
  const {data:after}=await db.from('opportunities').select('external_key,simulated');const newOpps=(after??[]).filter(o=>!known.has(o.external_key)&&!o.simulated).length;
- const {data:companies}=await db.from('companies').select('id,name').order('name');const list=companies??[];
+ const {data:companies}=await db.from('companies').select('id,name').order('name');const list=(companies??[]).filter(isListed);
  const {buildProfile}=await import('./build-profile.server');const {runMatcher}=await import('./matcher.server');
  let built=0,matched=0;
  for(const c of list){emit({type:'progress',message:`Rebuilding ${c.name}…`});try{await buildProfile(c.id,request,()=>{});built++;}catch(e){failures.push({step:'profile',company:c.name,message:e instanceof Error?e.message:'error'});}}

@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { connectionBasis,completeness,parseMemberUrls,itemsWithTopics } from './park-rules';
 import { canActAs, canSeeProfile, isPublicItem, runVisible } from './access-rules';
+import { isListed } from './hidden-companies';
 const id=z.object({id:z.string().uuid()});
 const viewer=async()=>(await import('./access.server')).currentViewer();
 export const getLatestRun=createServerFn({method:'GET'}).inputValidator(z.object({agent:z.string().max(60),company_id:z.string().uuid().nullable()})).handler(async({data})=>{
@@ -9,10 +10,10 @@ export const getLatestRun=createServerFn({method:'GET'}).inputValidator(z.object
  const {publicDb}=await import('./db.server');let q=publicDb().from('agent_runs').select('*').eq('agent',data.agent).order('started_at',{ascending:false}).limit(1);q=data.company_id?q.eq('company_id',data.company_id):q.is('company_id',null);
  const {data:rows,error}=await q;if(error)throw new Error(error.message);return rows?.[0]??null;
 });
-export const listRuns=createServerFn({method:'GET'}).handler(async()=>{const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('agent_runs').select('id,agent,company_id,started_at,duration_ms,sources_used,output,checks,simulated,companies(name)').order('started_at',{ascending:false}).limit(40);if(error)throw new Error(error.message);const v=await viewer();return (data??[]).filter(r=>runVisible(v,r));});
+export const listRuns=createServerFn({method:'GET'}).handler(async()=>{const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('agent_runs').select('id,agent,company_id,started_at,duration_ms,sources_used,output,checks,simulated,companies(name)').order('started_at',{ascending:false}).limit(40);if(error)throw new Error(error.message);const v=await viewer();return (data??[]).filter(r=>runVisible(v,r)&&(r.company_id===null||isListed(r.companies)));});
 export const getProfileChanges=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{if(!canSeeProfile(await viewer(),data.id))return [];const {publicDb}=await import('./db.server');const {data:rows,error}=await publicDb().from('profile_changes').select('*').eq('company_id',data.id).order('changed_at',{ascending:false}).limit(30);if(error)throw new Error(error.message);return rows??[];});
 export const listOpportunities=createServerFn({method:'GET'}).handler(async()=>{const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('opportunities').select('*').order('retrieved_at',{ascending:false});if(error)throw new Error(error.message);return data??[];});
-async function allProfiles(){const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('companies').select('id,name,website_url,profile_items(id,field,value,kind,confirmed_by_user)');if(error)throw new Error(error.message);return data??[];}
+async function allProfiles(){const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('companies').select('id,name,website_url,profile_items(id,field,value,kind,confirmed_by_user)');if(error)throw new Error(error.message);return (data??[]).filter(isListed);}
 // Connections compare public items only; a company's own edits count for itself, never for others.
 type Profiled=Awaited<ReturnType<typeof allProfiles>>[number];
 const publicOnly=(c:Profiled):Profiled=>({...c,profile_items:c.profile_items.filter(isPublicItem)});
@@ -33,7 +34,7 @@ export const getDashboard=createServerFn({method:'GET'}).inputValidator(id).hand
   db.from('opportunities').select('id,type,title,retrieved_at,simulated,source_name').order('retrieved_at',{ascending:false}),
   db.from('profile_changes').select('*').eq('company_id',data.id).order('changed_at',{ascending:false}).limit(10)]);
  for(const r of [c,m,o,ch])if(r.error)throw new Error(r.error.message);
- if(!c.data)return null;const seePrivate=canSeeProfile(await viewer(),data.id);
+ if(!c.data||!isListed(c.data))return null;const seePrivate=canSeeProfile(await viewer(),data.id);
  if(!seePrivate){m.data=[];ch.data=[];}
  const items=seePrivate?c.data.profile_items:c.data.profile_items.filter(isPublicItem);const opps=o.data??[];
  const counts={funding:0,event:0,testing:0,news:0} as Record<string,number>;for(const x of opps)counts[x.type]=(counts[x.type]??0)+1;
@@ -58,7 +59,7 @@ export const getStaffOverview=createServerFn({method:'GET'}).handler(async()=>{
  if((await viewer()).kind!=='staff')return null;
  const {publicDb}=await import('./db.server');const db=publicDb();
  const [c,m]=await Promise.all([db.from('companies').select('id,name,profile_items(field,value,kind)'),db.from('matches').select('company_id,score,opportunity:opportunities(id,title,type,deadline_or_date,simulated,source_url)').gte('score',50)]);
- if(c.error)throw new Error(c.error.message);if(m.error)throw new Error(m.error.message);
+ if(c.error)throw new Error(c.error.message);if(m.error)throw new Error(m.error.message);c.data=(c.data??[]).filter(isListed);
  const {tokens}=await import('./park-rules');const topic=new Map<string,Set<string>>();
  for(const co of c.data??[])for(const i of co.profile_items)if(i.kind!=='missing'&&['technologies','application_areas','markets_customers'].includes(i.field))for(const t of tokens(i.value)){if(!topic.has(t))topic.set(t,new Set());topic.get(t)!.add(co.name);}
  const topics=[...topic].map(([t,s])=>({topic:t,members:[...s]})).filter(t=>t.members.length>1).sort((a,b)=>b.members.length-a.members.length).slice(0,12);
