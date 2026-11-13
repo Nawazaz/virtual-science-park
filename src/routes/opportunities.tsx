@@ -15,6 +15,7 @@ import { HowMadeLink } from '@/components/park/how-made';
 import { FloatingAsk } from '@/components/park/chat-panel';
 import { fmtDate } from '@/components/park/evidence';
 import { keyDate, daysUntil } from '@/lib/park-rules';
+import { PrivateNotice } from '@/components/park/access';
 const types=['all','funding','event','testing','news','saved'] as const;type T=typeof types[number];
 const labels:Record<T,string>={all:'All',funding:'Funding',event:'Events',testing:'Testing',news:'News & trends',saved:'Saved'};
 export const Route=createFileRoute('/opportunities')({
@@ -25,7 +26,7 @@ export const Route=createFileRoute('/opportunities')({
 });
 const sel='h-9 rounded-lg border bg-card px-2 text-sm';
 function Opportunities(){
- const {type='all'}=Route.useSearch();const navigate=useNavigate({from:'/opportunities'});const {selected,companyId}=useViewingAs();const qc=useQueryClient();
+ const {type='all'}=Route.useSearch();const navigate=useNavigate({from:'/opportunities'});const {selected,companyId,isOwner,canSeePrivate}=useViewingAs();const qc=useQueryClient();
  const {data:opps=[]}=useQuery(opportunitiesQuery);const {data:sources=[]}=useQuery(sourcesQuery);
  const {data:m}=useQuery({...matchesQuery(companyId??''),enabled:!!companyId});const {data:company}=useQuery({...companyQuery(companyId??''),enabled:!!companyId});
  const refreshFn=useServerFn(refreshSourcesFn);const fbFn=useServerFn(setFeedback);const [busy,setBusy]=useState('');
@@ -47,7 +48,7 @@ function Opportunities(){
  const allSources=[...new Set(opps.map(o=>o.source_name))].sort();
  const dot=(s:string)=>s==='ok'?{c:'bg-confirmed',l:'live'}:s==='empty'?{c:'bg-inferred',l:'empty → simulated'}:{c:'bg-simulated',l:'failed → simulated'};
  return <ParkShell>
-  <PageHeader eyebrow={selected?`For ${selected.name}`:'Opportunities'} title="Opportunities" actions={<><Button variant="outline" disabled={!!busy} onClick={refresh}><RefreshCw/>Refresh sources</Button><Button disabled={!!busy||!companyId} onClick={()=>rematch()}><Sparkles/>Re-run matching</Button></>}>Possible matches ranked from the company profile. Always check the call text yourself.</PageHeader>
+  <PageHeader eyebrow={selected?`For ${selected.name}`:'Opportunities'} title="Opportunities" actions={<><Button variant="outline" disabled={!!busy} onClick={refresh}><RefreshCw/>Refresh sources</Button><Button disabled={!!busy||!companyId||!canSeePrivate} onClick={()=>rematch()}><Sparkles/>Re-run matching</Button></>}>Possible matches ranked from the company profile. Always check the call text yourself.</PageHeader>
   {busy&&<p role="status" className="mb-4 rounded-lg border bg-accent px-4 py-2 text-sm">{busy}</p>}
   <div className="surface mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 p-3 text-xs">{sources.map(s=>{const d=dot(s.status);return <span key={s.source_name} className="inline-flex items-center gap-1.5"><span className={`size-2 rounded-full ${d.c}`} aria-hidden/><span className="font-medium">{s.source_name}</span><span className="text-muted-foreground">{d.l} · checked {fmtDate(s.last_checked)} {new Date(s.last_checked).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></span>;})}<span className="flex-1"/><HowMadeLink agent="Source scouts" companyId={null} label="How were sources checked?"/></div>
   <div role="tablist" aria-label="Opportunity type" className="mb-3 flex flex-wrap gap-1 rounded-lg border bg-card p-1">{types.map(t=><button role="tab" key={t} aria-selected={type===t} onClick={()=>navigate({search:p=>({...p,type:t})})} className={`rounded-md px-3 py-1.5 text-sm ${type===t?'bg-primary text-primary-foreground':'text-muted-foreground hover:text-foreground'}`}>{labels[t]}</button>)}</div>
@@ -58,9 +59,10 @@ function Opportunities(){
    <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={hideSim} onChange={e=>setHideSim(e.target.checked)} className="size-4 accent-[var(--primary)]"/>Hide simulated</label>
    <span className="flex-1"/><select aria-label="Sort" className={sel} value={sort} onChange={e=>setSort(e.target.value as 'match'|'deadline')}><option value="match">Sort: best match</option><option value="deadline">Sort: deadline</option></select>
   </div>
+  {m?.locked&&selected&&<div className="mb-6"><PrivateNotice companyId={selected.id} name={selected.name}>Possible matches are ranked from the company's own profile, priorities and feedback, so only the company and park staff see them. The list below shows news only.</PrivateNotice></div>}
   {rows.length===0?<EmptyState icon={<Target/>} title={type==='saved'?'Nothing saved yet':'Nothing matches these filters'}>{type==='saved'?'Save opportunities to keep a shortlist.':companyId?'Loosen the filters, or build the profile and re-run matching.':'Choose a company in the top bar.'}</EmptyState>:
   <div className="space-y-3">{rows.map(({o,match})=>{const f=fb(o.id);const used=match?items.filter(i=>match.matched_profile_item_ids.includes(i.id)):undefined;
-   return <OpportunityCard key={o.id} o={o} score={match?.score} reason={match?.reason} checkFirst={match?.check_first} nextStep={match?.next_step} companyId={companyId} usedItems={used} weakBasis={!!match&&(used?.length??0)===0} actions={companyId?<><Button size="sm" variant={f?.saved?'default':'outline'} onClick={()=>send(o.id,!f?.saved,(f?.vote as 'up'|'down'|null)??null,false)}>{f?.saved?<BookmarkCheck/>:<Bookmark/>}{f?.saved?'Saved':'Save'}</Button><Button size="sm" variant={f?.vote==='up'?'default':'ghost'} aria-label="Helpful" aria-pressed={f?.vote==='up'} onClick={()=>send(o.id,!!f?.saved,f?.vote==='up'?null:'up',true)}><ThumbsUp/></Button><Button size="sm" variant={f?.vote==='down'?'default':'ghost'} aria-label="Not relevant" aria-pressed={f?.vote==='down'} onClick={()=>send(o.id,!!f?.saved,f?.vote==='down'?null:'down',true)}><ThumbsDown/></Button></>:undefined}/>;})}</div>}
-  <FloatingAsk companyId={companyId}/>
+   return <OpportunityCard key={o.id} o={o} score={match?.score} reason={match?.reason} checkFirst={match?.check_first} nextStep={match?.next_step} companyId={companyId} usedItems={used} weakBasis={!!match&&(used?.length??0)===0} actions={isOwner?<><Button size="sm" variant={f?.saved?'default':'outline'} onClick={()=>send(o.id,!f?.saved,(f?.vote as 'up'|'down'|null)??null,false)}>{f?.saved?<BookmarkCheck/>:<Bookmark/>}{f?.saved?'Saved':'Save'}</Button><Button size="sm" variant={f?.vote==='up'?'default':'ghost'} aria-label="Helpful" aria-pressed={f?.vote==='up'} onClick={()=>send(o.id,!!f?.saved,f?.vote==='up'?null:'up',true)}><ThumbsUp/></Button><Button size="sm" variant={f?.vote==='down'?'default':'ghost'} aria-label="Not relevant" aria-pressed={f?.vote==='down'} onClick={()=>send(o.id,!!f?.saved,f?.vote==='down'?null:'down',true)}><ThumbsDown/></Button></>:undefined}/>;})}</div>}
+  <FloatingAsk companyId={isOwner?companyId:null}/>
  </ParkShell>;
 }

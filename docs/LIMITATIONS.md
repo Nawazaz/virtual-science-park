@@ -1,11 +1,18 @@
 # Known limitations and next steps
 
 ## Limitations
-- **No login.** Every visitor can read and edit every company's data, including
-  chat history (shared anonymous database access). The assistant itself only
-  loads the current company's data, but a real service needs accounts and
-  per-company access rules in the database.
-- **Open job endpoints.** Without login, anyone can call the "Run now" nightly
+- **Sign-in is simulated (local branch).** The top bar's "Signed in as" picks a
+  company, park staff or visitor without a password. The server checks a signed
+  session cookie on every request (`src/lib/access-rules.ts`, tested):
+  - Other companies see only what the AI found on public pages: no company
+    edits, priorities, rankings, saved items, change history or chats.
+  - Park staff see profiles and rankings, but not chats or feedback.
+  - Only the company itself can edit its profile, vote or use its assistant.
+  What is still missing: real accounts with passwords, and the same rules in the
+  database. The database still allows anonymous access, so anyone holding the
+  publishable key could read it directly. Next step: Supabase Auth plus
+  row-level security per company (a schema change made in Lovable).
+- **Open job endpoints.** Without real login, anyone can call the "Run now" nightly
   endpoint and the build/match endpoints, which spend AI credits. The scheduled
   cron route is protected by a secret.
 - **Testbeds are curated by hand.** Public testbed directories block automated

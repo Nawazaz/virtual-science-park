@@ -4,6 +4,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useViewingAs } from '@/hooks/use-viewing-as';
+import { useSignIn } from '@/components/park/access';
+import { EvidenceBadge } from '@/components/park/evidence';
 const nav=[
  {to:'/',label:'Dashboard',Icon:LayoutDashboard,exact:true},
  {to:'/members',label:'Members',Icon:Users},
@@ -17,8 +19,15 @@ const nav=[
 ] as const;
 function ThemeToggle(){const [dark,setDark]=useState(false);useEffect(()=>setDark(document.documentElement.classList.contains('dark')),[]);
  return <button type="button" aria-label={dark?'Switch to light mode':'Switch to dark mode'} className="grid size-9 place-items-center rounded-lg border bg-card hover:border-primary" onClick={()=>{const n=!dark;setDark(n);document.documentElement.classList.toggle('dark',n);try{localStorage.setItem('vsp-theme',n?'dark':'light');}catch{}}}>{dark?<Sun size={16}/>:<Moon size={16}/>}</button>;}
-function Switcher(){const {companies,selected}=useViewingAs();const navigate=useNavigate();if(!companies.length)return null;
- return <label className="flex min-w-0 items-center gap-2 text-sm"><span className="hidden text-muted-foreground sm:inline">Viewing as:</span><Select value={selected?.id??""} onValueChange={id=>navigate({to:'.',search:(p:Record<string,unknown>)=>({...p,company:id})})}><SelectTrigger aria-label="Viewing as company" className="h-9 w-44 bg-card sm:w-56"><SelectValue/></SelectTrigger><SelectContent>{companies.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></label>;}
+// "Signed in as" is a simulated sign-in (no password); the server checks it on every request.
+// Staff and visitors also pick which company to look at; a signed-in company always looks at itself.
+function Switcher(){const {companies,selected,viewer}=useViewingAs();const navigate=useNavigate();const signIn=useSignIn();if(!companies.length)return null;
+ const who=viewer.kind==='company'?viewer.companyId:viewer.kind;
+ return <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 text-sm">
+  <label className="flex min-w-0 items-center gap-2"><span className="hidden text-muted-foreground sm:inline">Signed in as:</span><Select value={who} onValueChange={signIn}><SelectTrigger aria-label="Signed in as (simulated)" className="h-9 w-40 bg-card sm:w-52"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="guest">Visitor (not signed in)</SelectItem><SelectItem value="staff">Blue Science Park staff</SelectItem>{companies.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></label>
+  <EvidenceBadge kind="simulated" className="hidden lg:inline-flex"/>
+  {viewer.kind!=='company'&&<label className="flex min-w-0 items-center gap-2"><span className="hidden text-muted-foreground sm:inline">Viewing:</span><Select value={selected?.id??""} onValueChange={id=>navigate({to:'.',search:(p:Record<string,unknown>)=>({...p,company:id})})}><SelectTrigger aria-label="Viewing company" className="h-9 w-40 bg-card sm:w-48"><SelectValue/></SelectTrigger><SelectContent>{companies.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></label>}
+ </div>;}
 export function ParkShell({children}:{children:ReactNode}){
  return <TooltipProvider delayDuration={200}><div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
   <aside className="sticky top-0 hidden h-screen flex-col bg-sidebar text-sidebar-foreground md:flex">

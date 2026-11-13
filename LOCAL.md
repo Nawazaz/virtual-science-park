@@ -85,6 +85,21 @@ You can skip step 2 and use the database from your Lovable project:
 Local mode needs no admin key. **Careful:** this is the live database the jury
 sees, so profiles you build or rebuild locally replace what the demo shows.
 
+## Signing in (simulated)
+
+The top bar has **Signed in as**, with three choices:
+
+- **A company:** you see that company's full profile, rankings and chat, and you
+  can edit them. Other companies show only what the AI found on their public
+  pages.
+- **Blue Science Park staff:** you see every profile and ranking, plus the staff
+  page and Compare. Chats and feedback stay private to each company.
+- **Visitor:** you see public profiles only.
+
+There's no password. The server still checks the choice on every request.
+Set `SESSION_SECRET` in `.env.local` to any long random text so sign-ins survive
+a restart.
+
 ## What to expect from a small local model
 
 - **Slower:** a profile build or a match run can take a few minutes on a

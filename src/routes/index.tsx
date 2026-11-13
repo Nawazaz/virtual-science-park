@@ -14,6 +14,7 @@ import { isWeakBasis } from '@/lib/opportunity-rules';
 import { nightlyQuery } from '@/lib/company-queries';
 import { Moon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PrivateNotice } from '@/components/park/access';
 export const Route=createFileRoute('/')({
  head:()=>({meta:[{title:'Dashboard | Virtual Science Park'},{name:'description',content:'A personalised digest of possible matches, changes and connections for a Blue Science Park member.'},{property:'og:title',content:'Dashboard | Virtual Science Park'},{property:'og:description',content:'Your top possible matches, what changed and possible connections.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),
  loader:({context})=>context.queryClient.ensureQueryData(companiesQuery),
@@ -21,7 +22,7 @@ export const Route=createFileRoute('/')({
 });
 const tiles=[{type:'funding',label:'Funding',Icon:HandCoins},{type:'event',label:'Events',Icon:CalendarDays},{type:'testing',label:'Testing',Icon:FlaskConical},{type:'news',label:'News & trends',Icon:Newspaper}] as const;
 function Dashboard(){
- const {selected,companyId}=useViewingAs();
+ const {selected,companyId,isOwner}=useViewingAs();
  const {data:d,isLoading}=useQuery({...dashboardQuery(companyId??''),enabled:!!companyId});
  const {data:night}=useQuery(nightlyQuery);
  const overnight=(date:string)=>{if(!night)return false;const t=Date.parse(date),s=Date.parse(night.started_at);return t>=s-1000&&t<=s+night.duration_ms+5000;};
@@ -42,7 +43,7 @@ function Dashboard(){
   <section className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">{tiles.map(t=><Link key={t.type} to="/opportunities" search={(p:Record<string,unknown>)=>({...p,type:t.type})} className="surface flex items-center gap-3 p-4 hover:border-primary"><span className="grid size-10 place-items-center rounded-lg bg-accent text-primary"><t.Icon size={18} aria-hidden/></span><span><span className="block font-display text-2xl">{d.counts[t.type]??0}</span><span className="text-xs text-muted-foreground">{t.label}</span></span></Link>)}</section>
   <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
    <section><div className="mb-4 flex items-end justify-between"><h2 className="font-display text-2xl">Your top 5</h2><Link to="/opportunities" search={true} className="text-sm font-medium text-primary hover:underline">All opportunities</Link></div>
-    {d.top.length===0?<EmptyState icon={<Sparkles/>} title="No possible matches yet">{d.itemCount?'Open Opportunities and run matching to rank what fits this company.':'Build the company profile first, then run matching.'}</EmptyState>:
+    {d.locked?<PrivateNotice companyId={d.company.id} name={d.company.name}>Rankings, saved items and profile edits belong to the company. You see only what the AI found on its public pages.</PrivateNotice>:d.top.length===0?<EmptyState icon={<Sparkles/>} title="No possible matches yet">{d.itemCount?'Open Opportunities and run matching to rank what fits this company.':'Build the company profile first, then run matching.'}</EmptyState>:
     <div className="space-y-3">{d.top.map(m=><OpportunityCard key={m.opportunity!.id} o={m.opportunity!} score={m.score} reason={m.reason} nextStep={m.next_step} companyId={d.company.id} weakBasis={isWeakBasis(m.matched_profile_item_ids)} compact/>)}</div>}
    </section>
    <aside className="space-y-8">
@@ -56,6 +57,6 @@ function Dashboard(){
     </section>
    </aside>
   </div>
-  <FloatingAsk companyId={d.company.id}/>
+  <FloatingAsk companyId={isOwner?d.company.id:null}/>
  </ParkShell>;
 }

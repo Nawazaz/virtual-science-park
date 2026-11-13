@@ -1,21 +1,27 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { connectionBasis,completeness,parseMemberUrls,itemsWithTopics } from './park-rules';
+import { canActAs, canSeeProfile, isPublicItem, runVisible } from './access-rules';
 const id=z.object({id:z.string().uuid()});
+const viewer=async()=>(await import('./access.server')).currentViewer();
 export const getLatestRun=createServerFn({method:'GET'}).inputValidator(z.object({agent:z.string().max(60),company_id:z.string().uuid().nullable()})).handler(async({data})=>{
+ if(!runVisible(await viewer(),data))return null;
  const {publicDb}=await import('./db.server');let q=publicDb().from('agent_runs').select('*').eq('agent',data.agent).order('started_at',{ascending:false}).limit(1);q=data.company_id?q.eq('company_id',data.company_id):q.is('company_id',null);
  const {data:rows,error}=await q;if(error)throw new Error(error.message);return rows?.[0]??null;
 });
-export const listRuns=createServerFn({method:'GET'}).handler(async()=>{const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('agent_runs').select('id,agent,company_id,started_at,duration_ms,sources_used,output,checks,simulated,companies(name)').order('started_at',{ascending:false}).limit(40);if(error)throw new Error(error.message);return data??[];});
-export const getProfileChanges=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{const {publicDb}=await import('./db.server');const {data:rows,error}=await publicDb().from('profile_changes').select('*').eq('company_id',data.id).order('changed_at',{ascending:false}).limit(30);if(error)throw new Error(error.message);return rows??[];});
+export const listRuns=createServerFn({method:'GET'}).handler(async()=>{const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('agent_runs').select('id,agent,company_id,started_at,duration_ms,sources_used,output,checks,simulated,companies(name)').order('started_at',{ascending:false}).limit(40);if(error)throw new Error(error.message);const v=await viewer();return (data??[]).filter(r=>runVisible(v,r));});
+export const getProfileChanges=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{if(!canSeeProfile(await viewer(),data.id))return [];const {publicDb}=await import('./db.server');const {data:rows,error}=await publicDb().from('profile_changes').select('*').eq('company_id',data.id).order('changed_at',{ascending:false}).limit(30);if(error)throw new Error(error.message);return rows??[];});
 export const listOpportunities=createServerFn({method:'GET'}).handler(async()=>{const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('opportunities').select('*').order('retrieved_at',{ascending:false});if(error)throw new Error(error.message);return data??[];});
 async function allProfiles(){const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('companies').select('id,name,website_url,profile_items(id,field,value,kind,confirmed_by_user)');if(error)throw new Error(error.message);return data??[];}
+// Connections compare public items only; a company's own edits count for itself, never for others.
+type Profiled=Awaited<ReturnType<typeof allProfiles>>[number];
+const publicOnly=(c:Profiled):Profiled=>({...c,profile_items:c.profile_items.filter(isPublicItem)});
 export const getConnections=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{
- const all=await allProfiles();const me=all.find(c=>c.id===data.id);if(!me)return [];
- return all.filter(c=>c.id!==me.id).map(c=>{const basis=connectionBasis(me.profile_items,c.profile_items);return {id:c.id,name:c.name,website_url:c.website_url,basis,mine:itemsWithTopics(me.profile_items,basis),theirs:itemsWithTopics(c.profile_items,basis)};}).filter(c=>c.basis.length>0).sort((a,b)=>b.basis.length-a.basis.length);
+ const v=await viewer();const all=await allProfiles();const found=all.find(c=>c.id===data.id);if(!found)return [];const me=canSeeProfile(v,found.id)?found:publicOnly(found);
+ return all.map(publicOnly).filter(c=>c.id!==me.id).map(c=>{const basis=connectionBasis(me.profile_items,c.profile_items);return {id:c.id,name:c.name,website_url:c.website_url,basis,mine:itemsWithTopics(me.profile_items,basis),theirs:itemsWithTopics(c.profile_items,basis)};}).filter(c=>c.basis.length>0).sort((a,b)=>b.basis.length-a.basis.length);
 });
 export const getAllConnections=createServerFn({method:'GET'}).handler(async()=>{
- const all=await allProfiles();const pairs:{a:{id:string;name:string};b:{id:string;name:string};basis:string[]}[]=[];
+ const all=(await allProfiles()).map(publicOnly);const pairs:{a:{id:string;name:string};b:{id:string;name:string};basis:string[]}[]=[];
  for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){const basis=connectionBasis(all[i]!.profile_items,all[j]!.profile_items);if(basis.length)pairs.push({a:{id:all[i]!.id,name:all[i]!.name},b:{id:all[j]!.id,name:all[j]!.name},basis});}
  return {nodes:all.map(c=>({id:c.id,name:c.name,built:c.profile_items.some(i=>i.kind!=='missing')})),pairs:pairs.sort((x,y)=>y.basis.length-x.basis.length).slice(0,30)};
 });
@@ -27,11 +33,13 @@ export const getDashboard=createServerFn({method:'GET'}).inputValidator(id).hand
   db.from('opportunities').select('id,type,title,retrieved_at,simulated,source_name').order('retrieved_at',{ascending:false}),
   db.from('profile_changes').select('*').eq('company_id',data.id).order('changed_at',{ascending:false}).limit(10)]);
  for(const r of [c,m,o,ch])if(r.error)throw new Error(r.error.message);
- if(!c.data)return null;const items=c.data.profile_items;const opps=o.data??[];
+ if(!c.data)return null;const seePrivate=canSeeProfile(await viewer(),data.id);
+ if(!seePrivate){m.data=[];ch.data=[];}
+ const items=seePrivate?c.data.profile_items:c.data.profile_items.filter(isPublicItem);const opps=o.data??[];
  const counts={funding:0,event:0,testing:0,news:0} as Record<string,number>;for(const x of opps)counts[x.type]=(counts[x.type]??0)+1;
  const summary=items.find(i=>i.field==='what_it_does'&&i.kind!=='missing')??null;
  const updated=items.reduce<string|null>((a,i)=>!a||i.retrieved_at>a?i.retrieved_at:a,null);
- return {company:{id:c.data.id,name:c.data.name,website_url:c.data.website_url},summary,completeness:completeness(items),updated,itemCount:items.length,top:(m.data??[]).filter(x=>x.opportunity),counts,changes:ch.data??[],newOpps:opps.slice(0,6)};
+ return {company:{id:c.data.id,name:c.data.name,website_url:c.data.website_url},summary,completeness:completeness(items),updated,itemCount:items.length,top:(m.data??[]).filter(x=>x.opportunity),counts,changes:ch.data??[],newOpps:opps.slice(0,6),locked:!seePrivate};
 });
 export const importMembers=createServerFn({method:'POST'}).inputValidator(z.object({text:z.string().max(20000)})).handler(async({data})=>{
  const rows=parseMemberUrls(data.text);if(!rows.length)throw new Error('No valid member page addresses found.');
@@ -40,12 +48,14 @@ export const importMembers=createServerFn({method:'POST'}).inputValidator(z.obje
  if(fresh.length){const {error}=await db.from('companies').insert(fresh.map(r=>({name:r.name,website_url:r.member_page_url,member_page_url:r.member_page_url})));if(error)throw new Error(error.message);}
  return {added:fresh.length,skipped:rows.length-fresh.length};
 });
-export const getChat=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{const {publicDb}=await import('./db.server');const {data:rows,error}=await publicDb().from('chat_messages').select('*').eq('company_id',data.id).order('created_at').limit(60);if(error)throw new Error(error.message);return rows??[];});
+export const getChat=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{if(!canActAs(await viewer(),data.id))return [];const {publicDb}=await import('./db.server');const {data:rows,error}=await publicDb().from('chat_messages').select('*').eq('company_id',data.id).order('created_at').limit(60);if(error)throw new Error(error.message);return rows??[];});
 export const askAssistant=createServerFn({method:'POST'}).inputValidator(z.object({company_id:z.string().uuid(),question:z.string().trim().min(1).max(1000)})).handler(async({data})=>{
+ const {requireOwner}=await import('./access.server');requireOwner(data.company_id);
  const {answerQuestion}=await import('./assistant.server');return answerQuestion(data.company_id,data.question);
 });
 export const runBoundaryTestsFn=createServerFn({method:'POST'}).handler(async()=>{const {runBoundaryTests}=await import('./assistant.server');const {boundaryTests}=await import('./park-rules');return runBoundaryTests(boundaryTests);});
 export const getStaffOverview=createServerFn({method:'GET'}).handler(async()=>{
+ if((await viewer()).kind!=='staff')return null;
  const {publicDb}=await import('./db.server');const db=publicDb();
  const [c,m]=await Promise.all([db.from('companies').select('id,name,profile_items(field,value,kind)'),db.from('matches').select('company_id,score,opportunity:opportunities(id,title,type,deadline_or_date,simulated,source_url)').gte('score',50)]);
  if(c.error)throw new Error(c.error.message);if(m.error)throw new Error(m.error.message);
