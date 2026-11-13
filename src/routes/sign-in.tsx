@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
-import { ArrowRight, Eye, EyeOff, Loader2, MessagesSquare, Orbit, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Loader2, MessagesSquare, ShieldCheck, Sparkles } from 'lucide-react';
+import { BrandLockup, BrandMark } from '@/components/park/brand';
 import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -87,11 +88,9 @@ function SignInPage() {
   return (
     <div className="grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
       <aside className="hidden flex-col justify-between bg-sidebar p-10 text-sidebar-foreground lg:flex">
-        <Link to="/" className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-full bg-sidebar-accent text-sidebar-primary"><Orbit size={22} /></span>
-          <span className="font-display text-lg leading-tight">Virtual<br />Science Park</span>
-        </Link>
+        <Link to="/" aria-label="Virtual Science Park home"><BrandLockup tone="sidebar" /></Link>
         <div className="max-w-md">
+          <BrandMark className="mb-8 size-40 drop-shadow-[0_12px_30px_rgba(0,0,0,0.35)] xl:size-48" />
           <h2 className="font-display text-4xl leading-tight">Your company's window into Blue Science Park.</h2>
           <ul className="mt-8 space-y-4">
             {perks.map(({ Icon, text }) => (
@@ -107,7 +106,7 @@ function SignInPage() {
 
       <main className="flex items-center justify-center px-4 py-10 sm:px-8">
         <div className="w-full max-w-sm">
-          <Link to="/" className="mb-8 flex items-center gap-2 font-display text-lg lg:hidden"><Orbit size={20} className="text-primary" />Virtual Science Park</Link>
+          <Link to="/" aria-label="Virtual Science Park home" className="mb-8 block lg:hidden"><BrandLockup /></Link>
           <h1 className="font-display text-3xl">Sign in</h1>
           <p className="mt-2 text-sm text-muted-foreground">Use your company account to see your private profile, matches and assistant.</p>
 

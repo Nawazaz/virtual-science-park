@@ -1,11 +1,12 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Orbit, LayoutDashboard, Users, Target, Columns3, Network, MessagesSquare, ClipboardList, ShieldCheck, BookOpen, Moon, Sun, ChevronDown, LogOut, Repeat } from 'lucide-react';
+import { LayoutDashboard, Users, Target, Columns3, Network, MessagesSquare, ClipboardList, ShieldCheck, BookOpen, Moon, Sun, ChevronDown, LogOut, Repeat } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useViewingAs } from '@/hooks/use-viewing-as';
 import { SignInButton, useSignOut } from '@/components/park/access';
+import { BrandMark } from '@/components/park/brand';
 import { emailFor, initials, staffEmail, staffName } from '@/lib/demo-accounts';
 const nav=[
  {to:'/',label:'Dashboard',Icon:LayoutDashboard,exact:true},
@@ -41,12 +42,12 @@ function Switcher(){const {companies,selected,viewer}=useViewingAs();const navig
 export function ParkShell({children}:{children:ReactNode}){
  return <TooltipProvider delayDuration={200}><div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
   <aside className="sticky top-0 hidden h-screen flex-col bg-sidebar text-sidebar-foreground md:flex">
-   <Link to="/" search={true} className="flex items-center gap-3 px-5 py-6"><span className="grid size-10 place-items-center rounded-full bg-sidebar-accent text-sidebar-primary"><Orbit size={22}/></span><span className="font-display text-lg leading-tight">Virtual<br/>Science Park</span></Link>
+   <Link to="/" search={true} aria-label="Virtual Science Park home" className="flex items-center gap-3 px-4 py-6"><BrandMark className="size-12"/><span className="leading-tight"><span className="block font-display text-lg">Virtual<br/>Science Park</span><span className="mt-1 block text-[9px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/60">Future of innovation</span></span></Link>
    <nav aria-label="Main" className="flex flex-1 flex-col gap-0.5 px-3">{nav.map(n=><Link key={n.to} to={n.to} search={true} activeOptions={{exact:'exact' in n}} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" activeProps={{className:'!bg-sidebar-accent !text-sidebar-accent-foreground font-medium'}}><n.Icon size={17} aria-hidden/>{n.label}</Link>)}</nav>
    <p className="px-5 py-5 text-[11px] leading-relaxed text-sidebar-foreground/60">Hackathon prototype for Blue Science Park members.</p>
   </aside>
   <div className="flex min-w-0 flex-col pb-20 md:pb-0">
-   <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-8"><Link to="/" search={true} className="flex items-center gap-2 font-display text-lg md:hidden"><Orbit size={20} className="text-primary"/>VSP</Link><div className="md:flex-1"/><div className="flex items-center gap-2"><Switcher/><ThemeToggle/></div></header>
+   <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-8"><Link to="/" search={true} aria-label="Virtual Science Park home" className="flex items-center gap-2 font-display text-lg md:hidden"><BrandMark className="size-8"/>VSP</Link><div className="md:flex-1"/><div className="flex items-center gap-2"><Switcher/><ThemeToggle/></div></header>
    <main className="fade-in mx-auto w-full max-w-[1200px] flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
    <footer className="border-t px-4 py-6 text-xs text-muted-foreground md:px-8"><p>Information and suggestions only. Not eligibility decisions or commitments by Blue Science Park.</p><p className="mt-1">Hackathon prototype. Information is not professional advice or a decision by Blue Science Park.</p></footer>
   </div>
