@@ -10,7 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as CompareRouteImport } from './routes/compare'
+import { Route as ConnectionsRouteImport } from './routes/connections'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as MembersRouteImport } from './routes/members'
+import { Route as OpportunitiesRouteImport } from './routes/opportunities'
+import { Route as StaffRouteImport } from './routes/staff'
+import { Route as TrustRouteImport } from './routes/trust'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as ApiPublicBuildProfileRouteImport } from './routes/api/public/build-profile'
 import { Route as ApiPublicMatchRouteImport } from './routes/api/public/match'
@@ -21,9 +29,49 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompareRoute = CompareRouteImport.update({
   id: '/compare',
   path: '/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectionsRoute = ConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembersRoute = MembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpportunitiesRoute = OpportunitiesRouteImport.update({
+  id: '/opportunities',
+  path: '/opportunities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrustRoute = TrustRouteImport.update({
+  id: '/trust',
+  path: '/trust',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompaniesCompanyIdRoute = CompaniesCompanyIdRouteImport.update({
@@ -50,7 +98,15 @@ const CompaniesCompanyIdOpportunitiesRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/assistant': typeof AssistantRoute
   '/compare': typeof CompareRoute
+  '/connections': typeof ConnectionsRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/members': typeof MembersRoute
+  '/opportunities': typeof OpportunitiesRoute
+  '/staff': typeof StaffRoute
+  '/trust': typeof TrustRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/api/public/build-profile': typeof ApiPublicBuildProfileRoute
   '/api/public/match': typeof ApiPublicMatchRoute
@@ -58,7 +114,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/assistant': typeof AssistantRoute
   '/compare': typeof CompareRoute
+  '/connections': typeof ConnectionsRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/members': typeof MembersRoute
+  '/opportunities': typeof OpportunitiesRoute
+  '/staff': typeof StaffRoute
+  '/trust': typeof TrustRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/api/public/build-profile': typeof ApiPublicBuildProfileRoute
   '/api/public/match': typeof ApiPublicMatchRoute
@@ -67,7 +131,15 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/assistant': typeof AssistantRoute
   '/compare': typeof CompareRoute
+  '/connections': typeof ConnectionsRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/members': typeof MembersRoute
+  '/opportunities': typeof OpportunitiesRoute
+  '/staff': typeof StaffRoute
+  '/trust': typeof TrustRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/api/public/build-profile': typeof ApiPublicBuildProfileRoute
   '/api/public/match': typeof ApiPublicMatchRoute
@@ -77,7 +149,15 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/assistant'
     | '/compare'
+    | '/connections'
+    | '/how-it-works'
+    | '/members'
+    | '/opportunities'
+    | '/staff'
+    | '/trust'
     | '/companies/$companyId'
     | '/api/public/build-profile'
     | '/api/public/match'
@@ -85,7 +165,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/assistant'
     | '/compare'
+    | '/connections'
+    | '/how-it-works'
+    | '/members'
+    | '/opportunities'
+    | '/staff'
+    | '/trust'
     | '/companies/$companyId'
     | '/api/public/build-profile'
     | '/api/public/match'
@@ -93,7 +181,15 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
+    | '/assistant'
     | '/compare'
+    | '/connections'
+    | '/how-it-works'
+    | '/members'
+    | '/opportunities'
+    | '/staff'
+    | '/trust'
     | '/companies/$companyId'
     | '/api/public/build-profile'
     | '/api/public/match'
@@ -102,7 +198,15 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AssistantRoute: typeof AssistantRoute
   CompareRoute: typeof CompareRoute
+  ConnectionsRoute: typeof ConnectionsRoute
+  HowItWorksRoute: typeof HowItWorksRoute
+  MembersRoute: typeof MembersRoute
+  OpportunitiesRoute: typeof OpportunitiesRoute
+  StaffRoute: typeof StaffRoute
+  TrustRoute: typeof TrustRoute
   CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
   ApiPublicBuildProfileRoute: typeof ApiPublicBuildProfileRoute
   ApiPublicMatchRoute: typeof ApiPublicMatchRoute
@@ -118,11 +222,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/compare': {
       id: '/compare'
       path: '/compare'
       fullPath: '/compare'
       preLoaderRoute: typeof CompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connections': {
+      id: '/connections'
+      path: '/connections'
+      fullPath: '/connections'
+      preLoaderRoute: typeof ConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/members': {
+      id: '/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof MembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/opportunities': {
+      id: '/opportunities'
+      path: '/opportunities'
+      fullPath: '/opportunities'
+      preLoaderRoute: typeof OpportunitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trust': {
+      id: '/trust'
+      path: '/trust'
+      fullPath: '/trust'
+      preLoaderRoute: typeof TrustRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/companies/$companyId': {
@@ -158,7 +318,15 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AssistantRoute: AssistantRoute,
   CompareRoute: CompareRoute,
+  ConnectionsRoute: ConnectionsRoute,
+  HowItWorksRoute: HowItWorksRoute,
+  MembersRoute: MembersRoute,
+  OpportunitiesRoute: OpportunitiesRoute,
+  StaffRoute: StaffRoute,
+  TrustRoute: TrustRoute,
   CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,
   ApiPublicBuildProfileRoute: ApiPublicBuildProfileRoute,
   ApiPublicMatchRoute: ApiPublicMatchRoute,

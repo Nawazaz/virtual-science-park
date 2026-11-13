@@ -15,6 +15,20 @@
       "when": 1794570930267,
       "tag": "0001_opportunities_matching",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794576981872,
+      "tag": "0002_upgrade_runs_changes_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794577575852,
+      "tag": "0003_fix_profile_change_log",
+      "breakpoints": true
     }
   ]
 }

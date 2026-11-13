@@ -8,3 +8,8 @@
 - [x] Opportunities page per company and Compare page
 - [x] member_page_url in profiler
 - [x] Unit tests: simulated flag, confirmed weighting, no "eligible"
+
+## Upgrade (Baltic redesign)
+- [x] DB: new opportunity types/columns, agent_runs, profile_changes, chat_messages, seeds
+- [x] Design system, app shell, shared evidence components
+- [x] Dashboard, Members, Profile, Opportunities, Compare, Connections, Assistant, Staff, Trust, How it works

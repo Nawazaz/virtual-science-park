@@ -1,0 +1,26 @@
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { ParkShell, PageHeader } from '@/components/park-shell';
+import { companiesQuery, sourcesQuery, staffQuery, allConnectionsQuery } from '@/lib/company-queries';
+import { EvidenceBadge, fmtDate, SourceChip } from '@/components/park/evidence';
+import { TypePill } from '@/components/park/opportunity-card';
+export const Route=createFileRoute('/staff')({
+ head:()=>({meta:[{title:'For staff | Virtual Science Park'},{name:'description',content:'Shared interests, common deadlines, profile gaps and collaboration clusters across members.'},{property:'og:title',content:'For staff | Virtual Science Park'},{property:'og:description',content:'A park-wide view for Blue Science Park staff.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),
+ loader:({context})=>context.queryClient.ensureQueryData(companiesQuery),
+ component:Staff,
+});
+const H=({children}:{children:React.ReactNode})=><h2 className="mb-3 font-display text-2xl">{children}</h2>;
+function Staff(){useSuspenseQuery(companiesQuery);const {data:s}=useQuery(staffQuery);const {data:sources=[]}=useQuery(sourcesQuery);const {data:conn}=useQuery(allConnectionsQuery);
+ const max=Math.max(1,...(s?.topics??[]).map(t=>t.members.length));
+ // Clusters: connected components of the shared-topic graph (pairs with 2+ shared topics).
+ const parent=new Map<string,string>();const find=(x:string):string=>{const p=parent.get(x)??x;if(p===x)return x;const r=find(p);parent.set(x,r);return r;};
+ const strong=(conn?.pairs??[]).filter(p=>p.basis.length>=2);for(const p of strong)parent.set(find(p.a.id),find(p.b.id));
+ const groups=new Map<string,{names:Set<string>;topics:Set<string>}>();for(const p of strong){const k=find(p.a.id);const g=groups.get(k)??{names:new Set(),topics:new Set()};g.names.add(p.a.name);g.names.add(p.b.name);p.basis.forEach(t=>g.topics.add(t));groups.set(k,g);}
+ return <ParkShell><PageHeader eyebrow="Blue Science Park team" title="For staff">Where members overlap, which deadlines matter to many, and where profiles are missing.</PageHeader>
+  <div className="grid gap-8 lg:grid-cols-2">
+   <section><H>Shared interests</H>{!s?<p className="text-sm text-muted-foreground">Loading…</p>:s.topics.length===0?<p className="text-sm text-muted-foreground">No topics shared by two or more members yet.</p>:<ul className="surface space-y-2 p-4">{s.topics.map(t=><li key={t.topic} className="text-sm"><div className="flex justify-between"><span className="capitalize">{t.topic}</span><span className="text-muted-foreground">{t.members.length} members</span></div><div className="mt-1 h-2 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:`${t.members.length/max*100}%`}} title={t.members.join(', ')}/></div></li>)}</ul>}</section>
+   <section><H>Deadlines relevant to many members</H>{!s?null:s.deadlines.length===0?<p className="text-sm text-muted-foreground">No opportunity is a strong possible match (score 50+) for more than one member yet.</p>:<ul className="space-y-2">{s.deadlines.map(d=><li key={d.id} className="surface p-3 text-sm"><div className="flex flex-wrap items-center gap-2"><TypePill type={d.type}/>{d.simulated&&<EvidenceBadge kind="simulated"/>}<span className="text-xs text-muted-foreground">{d.deadline_or_date}</span></div><p className="mt-1 font-medium">{d.title}</p><p className="text-xs text-muted-foreground">{d.members.length} members: {d.members.join(', ')}</p><div className="mt-1"><SourceChip url={d.source_url}/></div></li>)}</ul>}</section>
+   <section><H>Members without profiles</H>{!s?null:s.unbuilt.length===0?<p className="text-sm text-muted-foreground">Every member has a built profile.</p>:<ul className="surface divide-y">{s.unbuilt.map(u=><li key={u.id} className="flex items-center justify-between p-3 text-sm"><span>{u.name}</span><Link to="/companies/$companyId" params={{companyId:u.id}} search={true} className="text-xs font-medium text-primary hover:underline">Build profile</Link></li>)}</ul>}</section>
+   <section><H>Suggested collaboration clusters</H>{groups.size===0?<p className="text-sm text-muted-foreground">No clusters yet. They appear when members share two or more topics.</p>:<ul className="space-y-2">{[...groups.values()].map((g,i)=><li key={i} className="surface p-4 text-sm"><p className="font-medium">{[...g.names].join(' · ')}</p><p className="mt-1 text-xs text-muted-foreground">Common ground: {[...g.topics].slice(0,6).join(', ')}</p></li>)}<p className="text-xs text-muted-foreground">Suggested on public information only. No company has expressed interest.</p></ul>}</section>
+   <section className="lg:col-span-2"><H>Source health</H><div className="grid gap-2 md:grid-cols-3">{sources.map(x=><div key={x.source_name} className="surface p-3 text-sm"><div className="flex items-center justify-between gap-2"><span className="font-medium">{x.source_name}</span>{x.status==='ok'?<span className="text-xs ink-confirmed">Live · {x.found}</span>:<EvidenceBadge kind="simulated"/>}</div><p className="mt-1 text-xs text-muted-foreground">{x.message} · {fmtDate(x.last_checked)}</p></div>)}</div></section>
+  </div></ParkShell>;}

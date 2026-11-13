@@ -2,17 +2,18 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { Output,streamText } from 'ai';
 import { z } from 'zod';
 import { publicDb } from './db.server';
-import { scoreMatch,sanitizeWording } from './opportunity-rules';
+import { scoreBreakdown,sanitizeWording } from './opportunity-rules';
+import { logRun } from './agent-runs.server';
 import { createLovableAiGatewayRunIdFetch,getLovableAiGatewayRunId } from './ai/run-id.ts';
 const schema=z.object({matches:z.array(z.object({opportunity_id:z.string(),score:z.number(),reason:z.string(),check_first:z.string(),next_step:z.string(),matched_profile_item_ids:z.array(z.string())}))});
 export async function runMatcher(companyId:string,request:Request,emit:(e:object)=>void){
- const db=publicDb();
+ const started=Date.now();const db=publicDb();
  const {data:company,error}=await db.from('companies').select('id,name,profile_items(id,field,value,kind,confirmed_by_user),company_priorities(priority)').eq('id',companyId).single();if(error||!company)throw new Error('Company not found.');
  const items=company.profile_items.filter(i=>i.kind!=='missing');if(!items.length)throw new Error('Build the company profile before matching.');
  const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
  const {data:access}=await supabaseAdmin.from('ai_access_state').select('id,blocked,reason').in('id',['profile-builder','matcher']);const blocked=access?.find(a=>a.blocked);if(blocked)throw new Error(blocked.reason??'AI access is paused.');
  const {data:all,error:oErr}=await db.from('opportunities').select('id,type,title,summary,simulated,source_name');if(oErr)throw new Error(oErr.message);
- const events=(all??[]).filter(o=>o.type==='event').slice(0,12);const opps=[...events,...(all??[]).filter(o=>o.type==='funding')].slice(0,40);
+ const events=(all??[]).filter(o=>o.type==='event').slice(0,12);const testing=(all??[]).filter(o=>o.type==='testing').slice(0,8);const opps=[...events,...testing,...(all??[]).filter(o=>o.type==='funding')].slice(0,48);
  if(!opps.length)throw new Error('No opportunities yet. Refresh sources first.');
  const {data:fb}=await db.from('feedback').select('opportunity_id,vote').eq('company_id',companyId);
  const down=(all??[]).filter(o=>fb?.some(f=>f.vote==='down'&&f.opportunity_id===o.id));
@@ -27,11 +28,20 @@ export async function runMatcher(companyId:string,request:Request,emit:(e:object
    messages:[{role:'user',content:JSON.stringify({company:company.name,priorities,profile_items:items,down_voted_titles:down.map(d=>d.title),opportunities:opps.map(o=>({id:o.id,type:o.type,title:o.title,summary:o.summary,simulated:o.simulated}))})}],
    output:Output.object({schema}),providerOptions:{openai:{forceReasoning:true,reasoningEffort:'low',reasoningSummary:'auto',store:false,include:['reasoning.encrypted_content']}}});
   const out=await result.output;if(!out)throw new Error('AI returned no matches.');
-  const rows=out.matches.flatMap(m=>{const o=opps.find(x=>x.id===m.opportunity_id);if(!o)return [];const used=items.filter(i=>m.matched_profile_item_ids.includes(i.id));
-   return [{company_id:companyId,opportunity_id:o.id,score:scoreMatch({aiScore:m.score,matchedItems:used,opportunity:o,priorities,downVoted:down}),reason:sanitizeWording(m.reason).slice(0,800),check_first:sanitizeWording(m.check_first).slice(0,800),next_step:sanitizeWording(m.next_step).slice(0,500),matched_profile_item_ids:used.map(i=>i.id)}];});
+  let unknownIds=0,reworded=0,dupes=0;const seen=new Set<string>();const breakdowns:Record<string,ReturnType<typeof scoreBreakdown>>={};
+  const clean=(t:string)=>{const c=sanitizeWording(t);if(c!==t)reworded++;return c;};
+  const rows=out.matches.flatMap(m=>{const o=opps.find(x=>x.id===m.opportunity_id);if(!o)return [];if(seen.has(o.id)){dupes++;return [];}seen.add(o.id);const used=items.filter(i=>m.matched_profile_item_ids.includes(i.id));unknownIds+=m.matched_profile_item_ids.length-used.length;
+   const b=scoreBreakdown({aiScore:m.score,matchedItems:used,opportunity:o,priorities,downVoted:down});breakdowns[o.id]=b;
+   return [{company_id:companyId,opportunity_id:o.id,score:b.total,reason:clean(m.reason).slice(0,800),check_first:clean(m.check_first).slice(0,800),next_step:clean(m.next_step).slice(0,500),matched_profile_item_ids:used.map(i=>i.id)}];});
   emit({type:'progress',message:'Saving matches…'});
   const {error:dErr}=await db.from('matches').delete().eq('company_id',companyId);if(dErr)throw new Error(dErr.message);
   if(rows.length){const {error:iErr}=await db.from('matches').insert(rows);if(iErr)throw new Error(iErr.message);}
+  await logRun({agent:'Matcher',company_id:companyId,started,sources:[...new Set(opps.map(o=>o.source_name))],output:JSON.stringify({summary:`${rows.length} possible matches ranked`,breakdowns}),checks:[
+   {name:'Unknown profile items dropped',passed:true,detail:unknownIds?`${unknownIds} reference${unknownIds===1?'':'s'} to unknown profile items removed`:'All cited items exist in the profile'},
+   {name:'Duplicates removed',passed:true,detail:dupes?`${dupes} duplicate ranking${dupes===1?'':'s'} removed`:'No duplicates'},
+   {name:'Eligibility wording removed',passed:true,detail:reworded?`${reworded} text${reworded===1?'':'s'} reworded`:'None found'},
+   {name:'Score uses deterministic weighting',passed:true,detail:'Confirmed > fact > inferred, priority boost, down-vote penalty'},
+  ],simulated:opps.some(o=>o.simulated)});
   emit({type:'done',count:rows.length});
  }catch(e){if(failure){if(failure.status===402||failure.status===403)await supabaseAdmin.from('ai_access_state').upsert({id:'matcher',blocked:true,reason:failure.message});throw new Error(failure.message);}throw e;}
 }

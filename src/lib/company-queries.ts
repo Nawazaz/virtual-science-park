@@ -5,3 +5,14 @@ export const companyQuery=(id:string)=>queryOptions({queryKey:['company',id],que
 import { getCompanyMatches,getSources } from './opportunities.functions';
 export const matchesQuery=(id:string)=>queryOptions({queryKey:['matches',id],queryFn:()=>getCompanyMatches({data:{id}})});
 export const sourcesQuery=queryOptions({queryKey:['sources'],queryFn:()=>getSources()});
+import { getDashboard,getProfileChanges,listOpportunities,getConnections,getAllConnections,getChat,listRuns } from './park.functions';
+export const dashboardQuery=(id:string)=>queryOptions({queryKey:['dashboard',id],queryFn:()=>getDashboard({data:{id}})});
+export const changesQuery=(id:string)=>queryOptions({queryKey:['changes',id],queryFn:()=>getProfileChanges({data:{id}})});
+export const opportunitiesQuery=queryOptions({queryKey:['opportunities'],queryFn:()=>listOpportunities()});
+export const connectionsQuery=(id:string)=>queryOptions({queryKey:['connections',id],queryFn:()=>getConnections({data:{id}})});
+export const allConnectionsQuery=queryOptions({queryKey:['connections','all'],queryFn:()=>getAllConnections()});
+export const chatQuery=(id:string)=>queryOptions({queryKey:['chat',id],queryFn:()=>getChat({data:{id}})});
+export const runsQuery=queryOptions({queryKey:['runs'],queryFn:()=>listRuns()});
+import { getQualityMetrics,getStaffOverview } from './park.functions';
+export const qualityQuery=queryOptions({queryKey:['quality'],queryFn:()=>getQualityMetrics()});
+export const staffQuery=queryOptions({queryKey:['staff'],queryFn:()=>getStaffOverview()});

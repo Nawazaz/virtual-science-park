@@ -1,18 +1,18 @@
 # Agents
 
-One folder per owner (BLUEPRINT.md section 4). Stay in your own folder;
-change `contracts.ts` only after telling the team.
+One folder per owner (BLUEPRINT.md section 4). Lovable built the agents flat
+in `src/lib/`; do not move those files. This folder holds the shared types
+(`contracts.ts`) and each owner's notes.
 
-## Where the Lovable code lives today
+## Where each agent lives
 
-Lovable built the first version flat in `src/lib/`. Do not move these files
-(the Lovable driver owns them); import from them or ask the driver.
-
-| Agent | Existing Lovable file | Pure rules (tested) |
-|---|---|---|
-| Profiler | `src/lib/build-profile.server.ts`, `src/lib/website.server.ts` | `src/lib/profile-rules.ts` |
-| Scouts | `src/lib/scouts.server.ts` | `src/lib/opportunity-rules.ts` (`simulatedSamples`) |
-| Matcher | `src/lib/matcher.server.ts` | `src/lib/opportunity-rules.ts` (`scoreMatch`, `sanitizeWording`) |
-| Guard + Assistant | not built yet | `guard/policy.ts` (started) |
-| Run log | not built yet, needs an `agent_runs` table (ask the driver) | |
-| Nightly run | not built yet (`src/integrations/supabase/cron-auth.ts` exists) | |
+| Agent | Code (AI / network) | Pure rules (tested) | Test |
+|---|---|---|---|
+| Profiler | `src/lib/build-profile.server.ts`, `src/lib/website.server.ts` | `src/lib/profile-rules.ts` | `profile-rules.test.ts` |
+| Scouts | `src/lib/scouts.server.ts` | `src/lib/opportunity-rules.ts` (`simulatedSamples`) | `opportunity-rules.test.ts` |
+| Matcher | `src/lib/matcher.server.ts` | `src/lib/opportunity-rules.ts` (`scoreBreakdown`, `sanitizeWording`) | `opportunity-rules.test.ts` |
+| Guard + Assistant | `src/lib/assistant.server.ts` | `src/lib/park-rules.ts` (`decideReply`, `boundaryTests`) | `park-rules.test.ts`, `boundary-cases.test.ts` |
+| Connections, dashboard | `src/lib/park.functions.ts` | `src/lib/park-rules.ts` (`connectionBasis`, `completeness`) | `park-rules.test.ts` |
+| Run log | `src/lib/agent-runs.server.ts` (writes `agent_runs`) | | |
+| "What changed" | database function `replace_generated_profile` writes `profile_changes` | | |
+| Nightly run | **not built yet** (`orchestrator.server.ts` describes it) | | |

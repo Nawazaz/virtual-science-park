@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export const fields = ['what_it_does','products_services','technologies','application_areas','markets_customers','geography','projects_collaborations','possible_interests'] as const;
-export const fieldLabels: Record<string,string> = {what_it_does:'What it does',products_services:'Products & services',technologies:'Technologies',application_areas:'Application areas',markets_customers:'Markets & customers',geography:'Geography',projects_collaborations:'Projects & collaborations',possible_interests:'Possible interests'};
+export const fieldLabels: Record<string,string> = {what_it_does:'What it does',products_services:'Offerings',technologies:'Technologies & expertise',application_areas:'Application areas',markets_customers:'Markets & customers',geography:'Geography',projects_collaborations:'Projects, priorities & collaborations',possible_interests:'Possibly relevant topics'};
 export const priorities = ['funding','events','testing','partners'] as const;
 export type Field = typeof fields[number];
 export type GeneratedItem = {field: Field; value: string; kind:'fact'|'inferred'|'missing'; evidence_quote:string|null; source_url:string|null};
@@ -20,3 +20,15 @@ export function validateEvidence(items: GeneratedItem[], pages:PageText[]): Gene
  return checked;
 }
 export function mergeConfirmed(generated:GeneratedItem[], confirmed:{field:string;confirmed_by_user:boolean}[]) { return generated.filter(item=>!confirmed.some(c=>c.confirmed_by_user&&c.field===item.field)); }
+
+/** Deterministic checks reported to agent_runs after a profile build. */
+export function evidenceChecks(raw:GeneratedItem[],checked:GeneratedItem[]){
+ const rawFacts=raw.filter(i=>i.kind==='fact'&&i.field!=='possible_interests').length;
+ const kept=checked.filter(i=>i.kind==='fact').length;const downgraded=rawFacts-kept;
+ const filled=checked.length-raw.length;
+ return [
+  {name:'Quotes found on source page',passed:true,detail:`${kept} of ${rawFacts} facts had an exact quote on the cited page`},
+  {name:'Unverified facts downgraded to Inferred',passed:true,detail:downgraded?`${downgraded} item${downgraded===1?'':'s'} downgraded`:'No downgrades needed'},
+  {name:'Missing fields filled',passed:true,detail:filled?`${filled} field${filled===1?'':'s'} marked Missing`:'All fields had content'},
+ ];
+}

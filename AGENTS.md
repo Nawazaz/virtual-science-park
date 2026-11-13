@@ -37,3 +37,8 @@ use the editor.
 - Persistent AI denial state is private infrastructure data and uses the privileged client only for that state, never ordinary company reads.
 - Opportunity scouts are server-only fetchers of fixed public sources; a source that fails or returns nothing gets flagged simulated samples and a recorded check status, so missing data is never silent.
 - Match scores combine the AI relevance with a deterministic weighting in opportunity-rules (confirmed > fact > inferred, priority boost, down-vote penalty) and all match text passes an eligibility-wording sanitizer; keep these rules testable and outside the prompt.
+- Every profile build, source refresh, match run and assistant answer writes one agent_runs row listing its deterministic checks; the "How was this made?" sheet reads the latest row, so new agents must log runs too.
+- The selected company lives in the root ?company= search param and all internal links preserve search; pages read it via useViewingAs instead of local state.
+- Shared evidence UI (EvidenceBadge, SourceChip, MatchScore, HowMadeLink) lives in src/components/park and pages must reuse it rather than restyle evidence inline.
+- The assistant answers only from data loaded for the current company_id (its profile and matches).
+- Assistant replies are decided by fixed code (park-rules decideReply) from an AI Guard class; the AI never chooses whether to refuse, and boundary tests on /trust exercise the real Guard.

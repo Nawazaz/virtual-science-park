@@ -30,13 +30,5 @@ export type AgentRun = {
   simulated: boolean;
 };
 
-/** The six chat classes the Guard can return. */
-export const guardClasses = [
-  'in_scope',
-  'unclear',
-  'out_of_scope',
-  'override_attempt',
-  'other_company_private',
-  'needs_human',
-] as const;
-export type GuardClass = (typeof guardClasses)[number];
+/** The six chat classes the Guard can return. Source of truth: src/lib/park-rules.ts. */
+export { guardClasses, type GuardClass } from '@/lib/park-rules';

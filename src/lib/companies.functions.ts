@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { companySchema, itemSchema, priorities } from './profile-rules';
 export const listCompanies=createServerFn({method:'GET'}).handler(async()=>{
  const {publicDb}=await import('./db.server');const db=publicDb();
- const {data,error}=await db.from('companies').select('id,name,website_url,created_at,profile_items(id,kind,confirmed_by_user),company_priorities(priority)').order('created_at',{ascending:false});if(error)throw new Error(error.message);return data??[];
+ const {data,error}=await db.from('companies').select('id,name,website_url,created_at,profile_items(id,field,value,kind,confirmed_by_user),company_priorities(priority)').order('created_at',{ascending:false});if(error)throw new Error(error.message);return data??[];
 });
 export const getCompany=createServerFn({method:'GET'}).inputValidator(z.object({id:z.string().uuid()})).handler(async({data})=>{
  const {publicDb}=await import('./db.server');const db=publicDb(); const {data:company,error}=await db.from('companies').select('id,name,website_url,member_page_url,created_at,profile_items(*),company_priorities(priority)').eq('id',data.id).maybeSingle();if(error)throw new Error(error.message);return company;

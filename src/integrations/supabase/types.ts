@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_runs: {
+        Row: {
+          agent: string
+          checks: Json
+          company_id: string | null
+          duration_ms: number
+          id: string
+          output: string
+          simulated: boolean
+          sources_used: string[]
+          started_at: string
+        }
+        Insert: {
+          agent: string
+          checks?: Json
+          company_id?: string | null
+          duration_ms?: number
+          id?: string
+          output?: string
+          simulated?: boolean
+          sources_used?: string[]
+          started_at?: string
+        }
+        Update: {
+          agent?: string
+          checks?: Json
+          company_id?: string | null
+          duration_ms?: number
+          id?: string
+          output?: string
+          simulated?: boolean
+          sources_used?: string[]
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_access_state: {
         Row: {
           blocked: boolean
@@ -31,6 +75,44 @@ export type Database = {
           reason?: string | null
         }
         Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          company_id: string | null
+          content: string
+          created_at: string
+          guard_class: string | null
+          id: string
+          role: string
+          sources: Json
+        }
+        Insert: {
+          company_id?: string | null
+          content: string
+          created_at?: string
+          guard_class?: string | null
+          id?: string
+          role: string
+          sources?: Json
+        }
+        Update: {
+          company_id?: string | null
+          content?: string
+          created_at?: string
+          guard_class?: string | null
+          id?: string
+          role?: string
+          sources?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {
@@ -169,7 +251,10 @@ export type Database = {
           deadline_or_date: string | null
           external_key: string
           id: string
+          key_requirements: string | null
           location_mode: string
+          next_step_url: string | null
+          purpose: string | null
           retrieved_at: string
           simulated: boolean
           source_name: string
@@ -183,7 +268,10 @@ export type Database = {
           deadline_or_date?: string | null
           external_key: string
           id?: string
+          key_requirements?: string | null
           location_mode?: string
+          next_step_url?: string | null
+          purpose?: string | null
           retrieved_at?: string
           simulated?: boolean
           source_name: string
@@ -197,7 +285,10 @@ export type Database = {
           deadline_or_date?: string | null
           external_key?: string
           id?: string
+          key_requirements?: string | null
           location_mode?: string
+          next_step_url?: string | null
+          purpose?: string | null
           retrieved_at?: string
           simulated?: boolean
           source_name?: string
@@ -207,6 +298,41 @@ export type Database = {
           type?: string
         }
         Relationships: []
+      }
+      profile_changes: {
+        Row: {
+          changed_at: string
+          company_id: string
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          changed_at?: string
+          company_id: string
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          changed_at?: string
+          company_id?: string
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_changes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profile_items: {
         Row: {
