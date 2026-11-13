@@ -1,0 +1,12 @@
+import {useState} from 'react';
+import { useServerFn } from '@tanstack/react-start';
+import { useQueryClient } from '@tanstack/react-query';
+import { Plus, ArrowRight, Building2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription,DialogTrigger } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { addCompany } from '@/lib/companies.functions';
+import { companySchema } from '@/lib/profile-rules';
+import { toast } from 'sonner';
+export function CompanyDialog(){const [open,setOpen]=useState(false);const [name,setName]=useState('');const [url,setUrl]=useState('');const [member,setMember]=useState('');const [busy,setBusy]=useState(false);const add=useServerFn(addCompany);const query=useQueryClient();return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button><Plus/>Add company</Button></DialogTrigger><DialogContent><DialogHeader><span className="dialog-icon"><Building2/></span><DialogTitle>Add a company</DialogTitle><DialogDescription>Company details</DialogDescription></DialogHeader><form className="form-stack" onSubmit={async e=>{e.preventDefault();const parsed=companySchema.safeParse({name,website_url:url,...(member.trim()?{member_page_url:member.trim()}:{})});if(!parsed.success){toast.error(parsed.error.issues[0]?.message??'Check company details.');return;}setBusy(true);try{await add({data:parsed.data});await query.invalidateQueries({queryKey:['companies']});setOpen(false);setName('');setUrl('');setMember('');toast.success('Company added');}catch(error){toast.error(error instanceof Error?error.message:'Could not add company');}finally{setBusy(false);}}}><div><Label htmlFor="company-name">Company name</Label><Input id="company-name" required maxLength={120} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Your company"/></div><div><Label htmlFor="company-url">Website URL</Label><Input id="company-url" type="url" required maxLength={2048} value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://company.com"/></div><div><Label htmlFor="member-url">Member page URL (optional)</Label><Input id="member-url" type="url" maxLength={2048} value={member} onChange={e=>setMember(e.target.value)} placeholder="https://www.bluesciencepark.se/medlem/…"/></div><Button disabled={busy} type="submit">{busy?'Adding company…':'Add company'}<ArrowRight/></Button></form></DialogContent></Dialog>}
