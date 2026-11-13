@@ -45,6 +45,9 @@ More: [docs/BLUEPRINT.md](docs/BLUEPRINT.md), [docs/ARCHITECTURE.md](docs/ARCHIT
 
 ## Setup
 
+> **Run everything on your own computer** (local AI with Ollama, your own database):
+> switch to the `local` branch and follow [LOCAL.md](LOCAL.md).
+
 Requires Node.js 22 or newer.
 
 ```sh
