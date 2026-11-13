@@ -4,14 +4,15 @@ import { publicDb } from './db.server';
 import { scoreBreakdown,sanitizeWording } from './opportunity-rules';
 import { logRun } from './agent-runs.server';
 import { getLovableAiGatewayRunId } from './ai/run-id.ts';
-import { agentModel } from './ai/model.server';
+import { agentModel,isLocalAi } from './ai/model.server';
 const schema=z.object({matches:z.array(z.object({opportunity_id:z.string(),score:z.number(),reason:z.string(),check_first:z.string(),next_step:z.string(),matched_profile_item_ids:z.array(z.string())}))});
 export async function runMatcher(companyId:string,request:Request,emit:(e:object)=>void){
  const started=Date.now();const db=publicDb();
  const {data:company,error}=await db.from('companies').select('id,name,profile_items(id,field,value,kind,confirmed_by_user),company_priorities(priority)').eq('id',companyId).single();if(error||!company)throw new Error('Company not found.');
  const items=company.profile_items.filter(i=>i.kind!=='missing');if(!items.length)throw new Error('Build the company profile before matching.');
- const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
- const {data:access}=await supabaseAdmin.from('ai_access_state').select('id,blocked,reason').in('id',['profile-builder','matcher']);const blocked=access?.find(a=>a.blocked);if(blocked)throw new Error(blocked.reason??'AI access is paused.');
+ // The pause flag guards Lovable's paid AI gateway; a local model needs no admin key.
+ const supabaseAdmin=isLocalAi()?null:(await import('@/integrations/supabase/client.server')).supabaseAdmin;
+ if(supabaseAdmin){const {data:access}=await supabaseAdmin.from('ai_access_state').select('id,blocked,reason').in('id',['profile-builder','matcher']);const blocked=access?.find(a=>a.blocked);if(blocked)throw new Error(blocked.reason??'AI access is paused.');}
  const {data:all,error:oErr}=await db.from('opportunities').select('id,type,title,summary,simulated,source_name');if(oErr)throw new Error(oErr.message);
  const events=(all??[]).filter(o=>o.type==='event').slice(0,12);const testing=(all??[]).filter(o=>o.type==='testing').slice(0,8);const news=(all??[]).filter(o=>o.type==='news').slice(0,10);const opps=[...events,...testing,...news,...(all??[]).filter(o=>o.type==='funding')].slice(0,48);
  if(!opps.length)throw new Error('No opportunities yet. Refresh sources first.');
@@ -48,5 +49,5 @@ export async function runMatcher(companyId:string,request:Request,emit:(e:object
    {name:'Score uses deterministic weighting',passed:true,detail:'Confirmed > fact > inferred, priority boost, down-vote penalty'},
   ],simulated:opps.some(o=>o.simulated)});
   emit({type:'done',count:rows.length});
- }catch(e){const failure=ai.state.failure;if(failure){if(failure.status===402||failure.status===403)await supabaseAdmin.from('ai_access_state').upsert({id:'matcher',blocked:true,reason:failure.message});throw new Error(failure.message);}throw e;}
+ }catch(e){const failure=ai.state.failure;if(failure){if(failure.status===402||failure.status===403)await supabaseAdmin?.from('ai_access_state').upsert({id:'matcher',blocked:true,reason:failure.message});throw new Error(failure.message);}throw e;}
 }

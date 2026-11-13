@@ -78,6 +78,13 @@ To run it automatically every night at 03:00 while the PC is on, use Windows
 Task Scheduler with the action
 `cmd /c cd /d "%USERPROFILE%\OneDrive\Documents\virtual-science-park" && npm run nightly:local`.
 
+## Quick start with the Lovable database (no Supabase sign-up)
+
+You can skip step 2 and use the database from your Lovable project:
+`copy .env .env.local`, then add the Ollama lines from `.env.local.example`.
+Local mode needs no admin key. **Careful:** this is the live database the jury
+sees, so profiles you build or rebuild locally replace what the demo shows.
+
 ## What to expect from a small local model
 
 - **Slower:** a profile build or a match run can take a few minutes on a
