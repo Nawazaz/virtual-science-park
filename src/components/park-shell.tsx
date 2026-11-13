@@ -21,7 +21,8 @@ function ThemeToggle(){const [dark,setDark]=useState(false);useEffect(()=>setDar
  return <button type="button" aria-label={dark?'Switch to light mode':'Switch to dark mode'} className="grid size-9 place-items-center rounded-lg border bg-card hover:border-primary" onClick={()=>{const n=!dark;setDark(n);document.documentElement.classList.toggle('dark',n);try{localStorage.setItem('vsp-theme',n?'dark':'light');}catch{}}}>{dark?<Sun size={16}/>:<Moon size={16}/>}</button>;}
 // "Signed in as" is a simulated sign-in (no password); the server checks it on every request.
 // Staff and visitors also pick which company to look at; a signed-in company always looks at itself.
-function Switcher(){const {companies,selected,viewer}=useViewingAs();const navigate=useNavigate();const signIn=useSignIn();if(!companies.length)return null;
+// Rendered only after mount: the server has no company list yet, so rendering it there made the page's first paint differ (hydration warning).
+function Switcher(){const {companies,selected,viewer}=useViewingAs();const navigate=useNavigate();const signIn=useSignIn();const [mounted,setMounted]=useState(false);useEffect(()=>setMounted(true),[]);if(!mounted||!companies.length)return null;
  const who=viewer.kind==='company'?viewer.companyId:viewer.kind;
  return <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 text-sm">
   <label className="flex min-w-0 items-center gap-2"><span className="hidden text-muted-foreground sm:inline">Signed in as:</span><Select value={who} onValueChange={signIn}><SelectTrigger aria-label="Signed in as (simulated)" className="h-9 w-40 bg-card sm:w-52"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="guest">Visitor (not signed in)</SelectItem><SelectItem value="staff">Blue Science Park staff</SelectItem>{companies.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></label>
