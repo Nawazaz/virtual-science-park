@@ -1,11 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Pause, Play } from 'lucide-react';
 import { globeLayout, topicRadius } from '@/lib/globe-layout';
 
 /**
  * 3D topic globe for the knowledge graph (three.js, loaded in the browser only).
  * Topics on the inner sphere, members on the outer sphere next to their topics; orange lines are
  * members named in another member's profile. Drag to turn, scroll to zoom, click to select.
+ * It spins slowly unless the viewer stops it (the choice is remembered in this browser), asks for
+ * reduced motion, or has something selected.
  */
+const SPIN_KEY = 'vsp-globe-spin';
 export type GlobeTopic = { id: string; label: string; category: string };
 export type GlobeCompany = { id: string; name: string; topics: string[] };
 export type GlobeFocus = { kind: 'topic' | 'company'; id: string } | null;
@@ -22,7 +26,8 @@ export function TopicGlobe({ topics, companies, named, focus, onSelect, height =
   selectRef.current = onSelect;
   const focusRef = useRef(focus);
   focusRef.current = focus;
-  const spinPaused = useRef(false);
+  const [spin, setSpin] = useState(true);
+  const spinOn = useRef(true);
   const key = JSON.stringify([topics.map((t) => t.id), companies.map((c) => [c.id, c.topics]), named]);
 
   useEffect(() => {
@@ -149,8 +154,7 @@ export function TopicGlobe({ topics, companies, named, focus, onSelect, height =
       window.addEventListener('pointerup', up);
       ren.domElement.addEventListener('pointermove', move);
       ren.domElement.addEventListener('wheel', wheel, { passive: false });
-      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const loop = () => { if (!drag && !still && !spinPaused.current) globe.rotation.y += 0.0022; ren.render(scene, cam); raf = requestAnimationFrame(loop); };
+      const loop = () => { if (!drag && spinOn.current) globe.rotation.y += 0.0022; ren.render(scene, cam); raf = requestAnimationFrame(loop); };
       loop();
       const ro = new ResizeObserver(() => { cam.aspect = el.clientWidth / Math.max(el.clientHeight, 1); cam.updateProjectionMatrix(); ren.setSize(el.clientWidth, el.clientHeight); ren.render(scene, cam); });
       ro.observe(el);
@@ -165,7 +169,25 @@ export function TopicGlobe({ topics, companies, named, focus, onSelect, height =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  useEffect(() => { paintRef.current(focus); spinPaused.current = !!focus; }, [focus]);
+  useEffect(() => { paintRef.current(focus); }, [focus]);
+  // Saved choice wins; otherwise spin unless the viewer asked for reduced motion. Read after mount (browser only).
+  useEffect(() => {
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(SPIN_KEY); } catch { /* storage blocked: use the default */ }
+    setSpin(saved ? saved === 'on' : !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }, []);
+  useEffect(() => { spinOn.current = spin && !focus; }, [spin, focus]);
+  const toggleSpin = () => {
+    const next = !spin;
+    setSpin(next);
+    try { localStorage.setItem(SPIN_KEY, next ? 'on' : 'off'); } catch { /* not remembered, still works */ }
+  };
 
-  return <div ref={box} className="relative w-full cursor-grab overflow-hidden rounded-[14px] bg-muted/40" style={{ height }} role="img" aria-label="3D globe of topics and member companies. The topic list below gives the same information." />;
+  return <div className="relative w-full" style={{ height }}>
+    <div ref={box} className="relative size-full cursor-grab overflow-hidden rounded-[14px] bg-muted/40" role="img" aria-label="3D globe of topics and member companies. The topic list below gives the same information." />
+    <button type="button" onClick={toggleSpin} title={spin ? 'Stop the globe turning' : 'Let the globe turn slowly'}
+      className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-lg border bg-card/90 px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:border-primary">
+      {spin ? <Pause size={14} aria-hidden /> : <Play size={14} aria-hidden />}{spin ? 'Stop spinning' : 'Spin'}
+    </button>
+  </div>;
 }
