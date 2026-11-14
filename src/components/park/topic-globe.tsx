@@ -10,6 +10,8 @@ import { globeLayout, topicRadius } from '@/lib/globe-layout';
  * reduced motion, or has something selected.
  */
 const SPIN_KEY = 'vsp-globe-spin';
+/** Radians per second: one full turn in about 70 s (was about 48 s at 60 Hz). */
+const SPIN_SPEED = 0.09;
 export type GlobeTopic = { id: string; label: string; category: string };
 export type GlobeCompany = { id: string; name: string; topics: string[] };
 export type GlobeFocus = { kind: 'topic' | 'company'; id: string } | null;
@@ -154,7 +156,13 @@ export function TopicGlobe({ topics, companies, named, focus, onSelect, height =
       window.addEventListener('pointerup', up);
       ren.domElement.addEventListener('pointermove', move);
       ren.domElement.addEventListener('wheel', wheel, { passive: false });
-      const loop = () => { if (!drag && spinOn.current) globe.rotation.y += 0.0022; ren.render(scene, cam); raf = requestAnimationFrame(loop); };
+      // Spin by elapsed time, not per frame, so 120/144 Hz screens don't turn it faster. Gaps (hidden tab) are capped.
+      let last = performance.now();
+      const loop = (now = performance.now()) => {
+        const dt = Math.min(Math.max(now - last, 0), 100) / 1000; last = now;
+        if (!drag && spinOn.current) globe.rotation.y += SPIN_SPEED * dt;
+        ren.render(scene, cam); raf = requestAnimationFrame(loop);
+      };
       loop();
       const ro = new ResizeObserver(() => { cam.aspect = el.clientWidth / Math.max(el.clientHeight, 1); cam.updateProjectionMatrix(); ren.setSize(el.clientWidth, el.clientHeight); ren.render(scene, cam); });
       ro.observe(el);
