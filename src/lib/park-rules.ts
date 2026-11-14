@@ -43,6 +43,12 @@ const overridePatterns:RegExp[]=[
  /\b(ignorera|strunta i|glöm)\s+(alla\s+)?(dina|tidigare|ovanstående|alla)\s+(\p{L}+\s+)?(regler|instruktioner)\b/iu,
  /\bdu är nu\b|\blåtsas (att du är|vara)\b|\bfrån och med nu är du\b/iu,
 ];
+/** The last few turns of this company's own chat, oldest first and shortened, so the Guard and the
+ * Assistant can understand follow-ups like "tell me more about the second one". */
+export type ChatTurn={role:'user'|'assistant';content:string};
+export function recentTurns(rows:{role:string;content:string}[],max=6,chars=500):ChatTurn[]{
+ return rows.filter((r):r is ChatTurn=>r.role==='user'||r.role==='assistant').slice(-max).map(r=>({role:r.role,content:r.content.length>chars?r.content.slice(0,chars-1)+'…':r.content}));
+}
 export function precheckGuard(message:string):GuardClass|null{return overridePatterns.some(p=>p.test(message))?'override_attempt':null;}
 /**
  * Fixed-code check after the AI Guard, for two mistakes a small model makes often:
