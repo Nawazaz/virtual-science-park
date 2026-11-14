@@ -84,9 +84,9 @@ export const getQualityMetrics=createServerFn({method:'GET'}).handler(async()=>{
  const facts=(items.data??[]).filter(i=>i.kind==='fact'&&!i.confirmed_by_user);const traced=facts.filter(i=>i.source_url&&i.evidence_quote).length;
  const last=bt.data?.[0];const btPassed=last?(last.checks as {passed:boolean}[]).filter(c=>c.passed).length:null;
  return {
-  accuracy:{value:claimed?Math.round(100*ok/claimed):null,detail:`${ok} of ${claimed} facts claimed by the AI had their exact quote on the cited page (latest build for ${seen.size} companies).`},
-  relevance:{value:rel.length?rel.reduce((a,b)=>a+b,0)/rel.length:null,detail:`Average number of top-5 possible matches backed by at least one profile item, across ${rel.length} companies.`},
-  traceability:{value:facts.length?Math.round(100*traced/facts.length):null,detail:`${traced} of ${facts.length} facts shown have both a source link and an exact quote.`},
+  accuracy:{value:claimed?Math.round(100*ok/claimed):null,detail:`${ok} of ${claimed} facts claimed by the AI had their exact quote on the cited page (latest build for ${seen.size} companies). The others were downgraded to Inferred. This shows the quote check works; it does not show that a quote supports the value. A person checked that by hand: see docs/EVALUATION.md.`},
+  relevance:{value:rel.length?rel.reduce((a,b)=>a+b,0)/rel.length:null,detail:`Average number of top-5 possible matches that cite at least one profile item, across ${rel.length} companies. It does not show that a match is useful; a person marked each top 5 relevant or not: see docs/EVALUATION.md.`},
+  traceability:{value:facts.length?Math.round(100*traced/facts.length):null,detail:`${traced} of ${facts.length} facts shown have both a source link and an exact quote. This should always be 100%, because the code downgrades any fact without a verified quote; a lower number would mean that rule broke.`},
   limits:{value:btPassed,detail:last?`Latest boundary test run on ${new Date(last.started_at).toISOString().slice(0,10)}: ${last.output}.`:'Boundary tests have not been run yet. Open the Boundary tests tab and press Run all.'},
  };
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { vinnovaSince } from '@/lib/opportunity-rules';
-import { newsFromPosts, testbedOpportunities, simulatedSamples, NEWS_SOURCE, TESTBED_SOURCE } from '@/lib/opportunity-rules';
+import { newsFromPosts, testbedOpportunities, simulatedSamples, vinnovaDetails, NEWS_SOURCE, TESTBED_SOURCE } from '@/lib/opportunity-rules';
 const now = new Date('2026-11-13T12:00:00Z');
 const post = (link: string, date: string) => ({ link, date, title: { rendered: '<b>Hello &amp; welcome</b>' }, excerpt: { rendered: '<p>Some <i>news</i></p>' } });
 describe('Real sources', () => {
@@ -16,6 +16,15 @@ describe('Real sources', () => {
     expect(r).toHaveLength(1);
     expect(r[0]).toMatchObject({ type: 'testing', source_name: TESTBED_SOURCE, source_url: 'https://lab.se', purpose: 'sensors', key_requirements: 'email us', simulated: false });
   });
+  it('reads purpose, who can apply and amount from Vinnova texts', () => {
+    const d = vinnovaDetails([
+      { TextID: 1, TextEn: '<p>Funding for pilot lines.</p>' },
+      { TextID: 2, TextEn: '', TextSv: '<p>Svenska små och medelstora företag.</p>' },
+      { TextID: 3, TextEn: 'Maximum 3.5 million per project.' },
+    ]);
+    expect(d).toEqual({ purpose: 'Funding for pilot lines.', key_requirements: 'Who can apply: Svenska små och medelstora företag. How much: Maximum 3.5 million per project.' });
+  });
+  it('Vinnova texts missing gives nulls, not empty strings', () => expect(vinnovaDetails(undefined)).toEqual({ purpose: null, key_requirements: null }));
   it('with no active testbeds the samples are simulated', () => { const s = simulatedSamples(TESTBED_SOURCE); expect(s.length).toBeGreaterThan(0); expect(s.every(x => x.simulated && x.type === 'testing')).toBe(true); });
   it('Vinnova look-back is a rolling 6-month window, not a fixed date', () => {
     expect(vinnovaSince(now)).toBe('2026-05-14');

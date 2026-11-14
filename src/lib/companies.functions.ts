@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { companySchema, itemSchema, priorities } from './profile-rules';
+import { companySchema, confirmedItemUpdate, itemSchema, priorities } from './profile-rules';
 import { visibleCompany } from './access-rules';
 import { isListed } from './hidden-companies';
 const viewer=async()=>(await import('./access.server')).currentViewer();
@@ -16,7 +16,9 @@ export const addCompany=createServerFn({method:'POST'}).inputValidator(companySc
 });
 export const saveItem=createServerFn({method:'POST'}).inputValidator(itemSchema).handler(async({data})=>{
  const {requireOwner}=await import('./access.server');requireOwner(data.company_id);
- const {publicDb}=await import('./db.server');const db=publicDb();const value={field:data.field,value:data.value,confirmed_by_user:true,kind:'fact' as const};
+ const {publicDb}=await import('./db.server');const db=publicDb();
+ let old:{value:string}|null=null;if(data.id){const r=await db.from('profile_items').select('value').eq('id',data.id).eq('company_id',data.company_id).maybeSingle();if(r.error)throw new Error(r.error.message);old=r.data;}
+ const value=confirmedItemUpdate(data.field,data.value,old);
  const result=data.id?await db.from('profile_items').update(value).eq('id',data.id).eq('company_id',data.company_id):await db.from('profile_items').insert({...value,company_id:data.company_id});if(result.error)throw new Error(result.error.message);return {ok:true};
 });
 export const deleteItem=createServerFn({method:'POST'}).inputValidator(z.object({id:z.string().uuid(),company_id:z.string().uuid()})).handler(async({data})=>{

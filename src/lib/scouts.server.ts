@@ -1,13 +1,13 @@
 import { publicDb } from './db.server';
 import { logRun } from './agent-runs.server';
 const stats={pastDropped:0,dupes:0};
-import { simulatedSamples,sourceNames,legacySourceNames,newsFromPosts,vinnovaSince,testbedOpportunities,type OpportunityInput,type SourceName,type WpPost,type Testbed } from './opportunity-rules';
+import { simulatedSamples,sourceNames,legacySourceNames,newsFromPosts,vinnovaSince,testbedOpportunities,vinnovaDetails,type OpportunityInput,type SourceName,type WpPost,type Testbed,type VinnovaWebText } from './opportunity-rules';
 const UA={'User-Agent':'VirtualScienceParkPrototype/1.0'};
 const strip=(s:string)=>s.replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&amp;/g,'&').replace(/&#8211;/g,'–').replace(/&#8217;/g,'’').replace(/&[a-z#0-9]+;/gi,' ').replace(/\s+/g,' ').trim();
 const clip=(s:string,n:number)=>s.length>n?s.slice(0,n-1)+'…':s;
 // A source that hangs fails after 90 s, so the refresh moves on and records it (Vinnova can take 20-40 s).
 async function json(url:string,init?:RequestInit){const r=await fetch(url,{...init,signal:AbortSignal.timeout(90_000),headers:{...UA,...(init?.headers??{})}});if(!r.ok)throw new Error(`${new URL(url).host} returned ${r.status}`);return r.json();}
-type VRound={Diarienummer:string;DiarienummerUtlysning:string;Titel:string;TitelEngelska:string;Beskrivning:string;BeskrivningEngelska:string;Oppningsdatum:string|null;Stangningsdatum:string|null;Publik:number;LankLista:{URL:string}[]};
+type VRound={Diarienummer:string;DiarienummerUtlysning:string;Titel:string;TitelEngelska:string;Beskrivning:string;BeskrivningEngelska:string;Oppningsdatum:string|null;Stangningsdatum:string|null;Publik:number;LankLista:{URL:string}[];WebTextLista?:VinnovaWebText[]|null};
 type VCall={Diarienummer:string;Titel:string;TitelEngelska:string;LankLista:{URL:string}[]};
 async function vinnova():Promise<OpportunityInput[]>{
  const since=vinnovaSince();
@@ -19,7 +19,7 @@ async function vinnova():Promise<OpportunityInput[]>{
   const title=en(r.TitelEngelska)||r.Titel;const links=[...r.LankLista,...(call?.LankLista??[])].map(l=>l.URL);
   const page=links.find(u=>/^https:\/\/www\.vinnova\.se\/e\//.test(u))??`https://www.vinnova.se/sok-finansiering/hitta-finansiering/?q=${encodeURIComponent(r.Titel)}`;
   const opening=r.Oppningsdatum&&Date.parse(r.Oppningsdatum)>now?`Opens ${r.Oppningsdatum.slice(0,10)}, `:'';
-  return {external_key:`vinnova:${r.Diarienummer}`,type:'funding' as const,title:clip(title,200),summary:clip(strip(en(r.BeskrivningEngelska)||r.Beskrivning),400),source_name:'Vinnova',source_url:page,deadline_or_date:`${opening}Deadline ${r.Stangningsdatum!.slice(0,10)}`,location_mode:'unknown' as const,audience:call?clip(en(call.TitelEngelska)||call.Titel,160):null,simulated:false};
+  return {external_key:`vinnova:${r.Diarienummer}`,type:'funding' as const,title:clip(title,200),summary:clip(strip(en(r.BeskrivningEngelska)||r.Beskrivning),400),source_name:'Vinnova',source_url:page,deadline_or_date:`${opening}Deadline ${r.Stangningsdatum!.slice(0,10)}`,location_mode:'unknown' as const,audience:call?clip(en(call.TitelEngelska)||call.Titel,160):null,simulated:false,...vinnovaDetails(r.WebTextLista)};
  });
 }
 const months=['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];
