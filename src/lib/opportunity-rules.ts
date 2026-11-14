@@ -11,6 +11,10 @@ export const legacySourceNames:Partial<Record<SourceName,string[]>>={[NEWS_SOURC
 const stripHtml=(s:string)=>s.replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&amp;/g,'&').replace(/&#8211;/g,'–').replace(/&#82(16|17);/g,'’').replace(/&#82(20|21);/g,'"').replace(/&[a-z#0-9]+;/gi,' ').replace(/\s+/g,' ').trim();
 export type WpPost={link:string;date:string;title:{rendered:string};excerpt:{rendered:string}};
 /** Real news: last 120 days, HTML stripped, deduplicated by link. */
+/** Vinnova's API lists rounds changed since a date. A rolling window keeps every open call as time passes;
+ * 6 months caught all open calls on 2026-11-14 (a fixed 2026-08-01 missed one) while staying fast (the API slows down with longer windows). */
+export const VINNOVA_WINDOW_DAYS=183;
+export function vinnovaSince(now=new Date(),days=VINNOVA_WINDOW_DAYS){return new Date(now.getTime()-days*864e5).toISOString().slice(0,10);}
 export function newsFromPosts(posts:WpPost[],now=new Date()):OpportunityInput[]{
  const cutoff=now.getTime()-120*864e5;const seen=new Set<string>();const out:OpportunityInput[]=[];
  for(const p of posts){if(!p.link||seen.has(p.link))continue;const t=Date.parse(p.date);if(!(t>=cutoff))continue;seen.add(p.link);

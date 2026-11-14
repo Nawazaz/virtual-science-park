@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { vinnovaSince } from '@/lib/opportunity-rules';
 import { newsFromPosts, testbedOpportunities, simulatedSamples, NEWS_SOURCE, TESTBED_SOURCE } from '@/lib/opportunity-rules';
 const now = new Date('2026-11-13T12:00:00Z');
 const post = (link: string, date: string) => ({ link, date, title: { rendered: '<b>Hello &amp; welcome</b>' }, excerpt: { rendered: '<p>Some <i>news</i></p>' } });
@@ -16,4 +17,8 @@ describe('Real sources', () => {
     expect(r[0]).toMatchObject({ type: 'testing', source_name: TESTBED_SOURCE, source_url: 'https://lab.se', purpose: 'sensors', key_requirements: 'email us', simulated: false });
   });
   it('with no active testbeds the samples are simulated', () => { const s = simulatedSamples(TESTBED_SOURCE); expect(s.length).toBeGreaterThan(0); expect(s.every(x => x.simulated && x.type === 'testing')).toBe(true); });
+  it('Vinnova look-back is a rolling 6-month window, not a fixed date', () => {
+    expect(vinnovaSince(now)).toBe('2026-05-14');
+    expect(vinnovaSince(new Date('2027-06-01T00:00:00Z'))).toBe('2026-11-30');
+  });
 });

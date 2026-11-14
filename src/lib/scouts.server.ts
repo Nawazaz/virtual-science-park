@@ -1,15 +1,17 @@
 import { publicDb } from './db.server';
 import { logRun } from './agent-runs.server';
 const stats={pastDropped:0,dupes:0};
-import { simulatedSamples,sourceNames,legacySourceNames,newsFromPosts,testbedOpportunities,type OpportunityInput,type SourceName,type WpPost,type Testbed } from './opportunity-rules';
+import { simulatedSamples,sourceNames,legacySourceNames,newsFromPosts,vinnovaSince,testbedOpportunities,type OpportunityInput,type SourceName,type WpPost,type Testbed } from './opportunity-rules';
 const UA={'User-Agent':'VirtualScienceParkPrototype/1.0'};
 const strip=(s:string)=>s.replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&amp;/g,'&').replace(/&#8211;/g,'–').replace(/&#8217;/g,'’').replace(/&[a-z#0-9]+;/gi,' ').replace(/\s+/g,' ').trim();
 const clip=(s:string,n:number)=>s.length>n?s.slice(0,n-1)+'…':s;
-async function json(url:string,init?:RequestInit){const r=await fetch(url,{...init,headers:{...UA,...(init?.headers??{})}});if(!r.ok)throw new Error(`${new URL(url).host} returned ${r.status}`);return r.json();}
+// A source that hangs fails after 90 s, so the refresh moves on and records it (Vinnova can take 20-40 s).
+async function json(url:string,init?:RequestInit){const r=await fetch(url,{...init,signal:AbortSignal.timeout(90_000),headers:{...UA,...(init?.headers??{})}});if(!r.ok)throw new Error(`${new URL(url).host} returned ${r.status}`);return r.json();}
 type VRound={Diarienummer:string;DiarienummerUtlysning:string;Titel:string;TitelEngelska:string;Beskrivning:string;BeskrivningEngelska:string;Oppningsdatum:string|null;Stangningsdatum:string|null;Publik:number;LankLista:{URL:string}[]};
 type VCall={Diarienummer:string;Titel:string;TitelEngelska:string;LankLista:{URL:string}[]};
 async function vinnova():Promise<OpportunityInput[]>{
- const [rounds,calls]=await Promise.all([json('https://data.vinnova.se/api/ansokningsomgangar/2026-08-01') as Promise<VRound[]>,json('https://data.vinnova.se/api/utlysningar/2026-08-01') as Promise<VCall[]>]);
+ const since=vinnovaSince();
+ const [rounds,calls]=await Promise.all([json(`https://data.vinnova.se/api/ansokningsomgangar/${since}`) as Promise<VRound[]>,json(`https://data.vinnova.se/api/utlysningar/${since}`) as Promise<VCall[]>]);
  const now=Date.now();const soon=now+60*864e5;
  const pub=rounds.filter(r=>r.Publik===1);stats.pastDropped+=pub.filter(r=>!r.Stangningsdatum||Date.parse(r.Stangningsdatum)<=now).length;
  return pub.filter(r=>r.Stangningsdatum&&Date.parse(r.Stangningsdatum)>now&&(!r.Oppningsdatum||Date.parse(r.Oppningsdatum)<soon)).map(r=>{
