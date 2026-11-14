@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { canActAs, canSeeProfile } from './access-rules';
-export const refreshSourcesFn=createServerFn({method:'POST'}).handler(async()=>{const {refreshSources}=await import('./scouts.server');return refreshSources();});
+export const refreshSourcesFn=createServerFn({method:'POST'}).handler(async()=>{const {requireSignedIn}=await import('./access.server');requireSignedIn();const {refreshSources}=await import('./scouts.server');return refreshSources();});
 export const getSources=createServerFn({method:'GET'}).handler(async()=>{const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('source_checks').select('*').order('source_name');if(error)throw new Error(error.message);return data??[];});
 // Rankings: the company and park staff. Saved items and votes: the company only.
 export const getCompanyMatches=createServerFn({method:'GET'}).inputValidator(z.object({id:z.string().uuid()})).handler(async({data})=>{

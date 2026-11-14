@@ -12,6 +12,7 @@ export const getCompany=createServerFn({method:'GET'}).inputValidator(z.object({
  const {publicDb}=await import('./db.server');const db=publicDb(); const {data:company,error}=await db.from('companies').select('id,name,website_url,member_page_url,created_at,profile_items(*),company_priorities(priority)').eq('id',data.id).maybeSingle();if(error)throw new Error(error.message);return isListed(company)?visibleCompany(await viewer(),company!):null;
 });
 export const addCompany=createServerFn({method:'POST'}).inputValidator(companySchema).handler(async({data})=>{
+ const {requireStaff}=await import('./access.server');requireStaff();
  const {publicDb}=await import('./db.server');const {data:row,error}=await publicDb().from('companies').insert({name:data.name,website_url:data.website_url,member_page_url:data.member_page_url??null}).select().single();if(error)throw new Error(error.message);return row;
 });
 export const saveItem=createServerFn({method:'POST'}).inputValidator(itemSchema).handler(async({data})=>{

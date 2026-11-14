@@ -3,9 +3,9 @@ import { z } from 'zod';
 const url=z.string().trim().max(2048).url().refine(u=>/^https?:\/\//i.test(u),'URL must start with http or https');
 const input=z.object({id:z.string().uuid().optional(),name:z.string().trim().min(1).max(200),organisation:z.string().trim().max(200),description:z.string().trim().max(1000),what_you_can_test:z.string().trim().max(600),how_to_start:z.string().trim().max(600),location:z.string().trim().max(200),url,added_by:z.string().trim().max(120),active:z.boolean()});
 export const listTestbeds=createServerFn({method:'GET'}).handler(async()=>{const {publicDb}=await import('./db.server');const {data,error}=await publicDb().from('testbeds').select('*').order('active',{ascending:false}).order('name');if(error)throw new Error(error.message);return data??[];});
-export const saveTestbed=createServerFn({method:'POST'}).inputValidator(input).handler(async({data})=>{
+export const saveTestbed=createServerFn({method:'POST'}).inputValidator(input).handler(async({data})=>{const {requireStaff}=await import('./access.server');requireStaff();
  const {publicDb}=await import('./db.server');const {id,...row}=data;const verified_on=new Date().toISOString().slice(0,10);
  const q=id?publicDb().from('testbeds').update({...row,verified_on}).eq('id',id):publicDb().from('testbeds').insert({...row,verified_on});
  const {error}=await q;if(error)throw new Error(error.message);return {ok:true};
 });
-export const setTestbedActive=createServerFn({method:'POST'}).inputValidator(z.object({id:z.string().uuid(),active:z.boolean()})).handler(async({data})=>{const {publicDb}=await import('./db.server');const {error}=await publicDb().from('testbeds').update({active:data.active}).eq('id',data.id);if(error)throw new Error(error.message);return {ok:true};});
+export const setTestbedActive=createServerFn({method:'POST'}).inputValidator(z.object({id:z.string().uuid(),active:z.boolean()})).handler(async({data})=>{const {requireStaff}=await import('./access.server');requireStaff();const {publicDb}=await import('./db.server');const {error}=await publicDb().from('testbeds').update({active:data.active}).eq('id',data.id);if(error)throw new Error(error.message);return {ok:true};});
