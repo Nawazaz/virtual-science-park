@@ -1,6 +1,6 @@
 export type OpportunityType='funding'|'event'|'testing'|'news';
 export type LocationMode='online'|'in_person'|'unknown';
-export type OpportunityInput={external_key:string;type:OpportunityType;title:string;summary:string;source_name:string;source_url:string|null;deadline_or_date:string|null;location_mode:LocationMode;audience:string|null;simulated:boolean};
+export type OpportunityInput={external_key:string;type:OpportunityType;title:string;summary:string;source_name:string;source_url:string|null;deadline_or_date:string|null;location_mode:LocationMode;audience:string|null;simulated:boolean;purpose?:string|null;key_requirements?:string|null};
 export const NEWS_SOURCE='Blue Science Park news';
 export const TESTBED_SOURCE='Curated by Blue Science Park staff';
 export const sourceNames=['Vinnova','Blue Science Park events','EU Funding & Tenders',NEWS_SOURCE,TESTBED_SOURCE] as const;
@@ -16,6 +16,13 @@ export function newsFromPosts(posts:WpPost[],now=new Date()):OpportunityInput[]{
  for(const p of posts){if(!p.link||seen.has(p.link))continue;const t=Date.parse(p.date);if(!(t>=cutoff))continue;seen.add(p.link);
   out.push({external_key:`bspnews:${p.link}`,type:'news',title:stripHtml(p.title.rendered).slice(0,200),summary:stripHtml(p.excerpt.rendered).slice(0,400),source_name:NEWS_SOURCE,source_url:p.link,deadline_or_date:p.date.slice(0,10),location_mode:'unknown',audience:null,simulated:false});}
  return out;
+}
+/** Vinnova's fixed call texts: 1 = what you can apply for, 2 = who can apply, 3 = how much. */
+export type VinnovaWebText={TextID:number;TextSv?:string|null;TextEn?:string|null};
+export function vinnovaDetails(texts:VinnovaWebText[]|null|undefined):{purpose:string|null;key_requirements:string|null}{
+ const text=(id:number)=>{const t=(texts??[]).find(x=>x.TextID===id);const en=stripHtml(t?.TextEn??'');return (en||stripHtml(t?.TextSv??'')).slice(0,400)||null;};
+ const who=text(2);const amount=text(3);
+ return {purpose:text(1),key_requirements:[who&&`Who can apply: ${who}`,amount&&`How much: ${amount}`].filter(Boolean).join(' ')||null};
 }
 export type Testbed={id:string;name:string;organisation:string;description:string;what_you_can_test:string;how_to_start:string;location:string;url:string;active:boolean};
 export type TestbedOpportunity=OpportunityInput&{purpose:string|null;key_requirements:string|null};
