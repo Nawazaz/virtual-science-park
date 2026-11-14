@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { getLatestRun } from '@/lib/park.functions';
 import { CheckRow, EvidenceBadge, fmtDate, domainOf } from './evidence';
 type Breakdown={ai:number;evidenceWeight:number;weighted:number;priorityBoost:number;feedbackPenalty:number;total:number};
-export function HowMadeLink({agent,companyId,opportunityId,label='How was this made?'}:{agent:'Profile builder'|'Matcher'|'Source scouts'|'Assistant'|'Nightly run';companyId:string|null;opportunityId?:string;label?:string}){
+export function HowMadeLink({agent,companyId,opportunityId,label='How was this made?'}:{agent:'Profile builder'|'Matcher'|'Source scouts'|'Assistant'|'Staff assistant'|'Park assistant'|'Nightly run';companyId:string|null;opportunityId?:string;label?:string}){
  const [open,setOpen]=useState(false);
  const {data:run,isLoading}=useQuery({queryKey:['run',agent,companyId],queryFn:()=>getLatestRun({data:{agent,company_id:companyId}}),enabled:open});
  let breakdown:Breakdown|undefined;let summary=run?.output??'';

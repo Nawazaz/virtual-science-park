@@ -1,8 +1,8 @@
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { LayoutDashboard, Users, Target, Columns3, Network, MessagesSquare, ClipboardList, ShieldCheck, Moon, Sun, ChevronDown, LogOut, Repeat } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useViewingAs } from '@/hooks/use-viewing-as';
 import { SignInButton, useSignOut } from '@/components/park/access';
@@ -25,11 +25,13 @@ function ThemeToggle(){const [dark,setDark]=useState(false);useEffect(()=>setDar
  return <button type="button" aria-label={dark?'Switch to light mode':'Switch to dark mode'} className="grid size-9 place-items-center rounded-lg border bg-card hover:border-primary" onClick={()=>{const n=!dark;setDark(n);document.documentElement.classList.toggle('dark',n);try{localStorage.setItem('vsp-theme',n?'dark':'light');}catch{}}}>{dark?<Sun size={16}/>:<Moon size={16}/>}</button>;}
 // Visitors get a "Sign in" button; a signed-in account gets a menu with Sign out. The server checks the session on every request.
 // Staff and visitors also pick which company to look at; a signed-in company always looks at itself.
+// On the Assistant page staff can also pick "Whole park" (?scope=park) to ask about all members at once.
 // Rendered only after mount: the server has no company list yet, so rendering it there made the page's first paint differ (hydration warning).
-function Switcher(){const {companies,selected,viewer}=useViewingAs();const navigate=useNavigate();const signOutNow=useSignOut();const [mounted,setMounted]=useState(false);useEffect(()=>setMounted(true),[]);if(!mounted||!companies.length)return null;
+function Switcher(){const {companies,selected,viewer}=useViewingAs();const navigate=useNavigate();const loc=useLocation();
+ const parkOption=viewer.kind==='staff'&&loc.pathname==='/assistant';const parkOn=parkOption&&(loc.search as {scope?:string}).scope==='park';const signOutNow=useSignOut();const [mounted,setMounted]=useState(false);useEffect(()=>setMounted(true),[]);if(!mounted||!companies.length)return null;
  const name=viewer.kind==='staff'?staffName:viewer.kind==='company'?companies.find(c=>c.id===viewer.companyId)?.name??'Your company':null;
  return <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 text-sm">
-  {viewer.kind!=='company'&&<label className="flex min-w-0 items-center gap-2"><span className="hidden text-muted-foreground sm:inline">Viewing:</span><Select value={selected?.id??""} onValueChange={id=>navigate({to:'.',search:(p:Record<string,unknown>)=>({...p,company:id})})}><SelectTrigger aria-label="Viewing company" className="h-9 w-36 bg-card sm:w-48"><SelectValue/></SelectTrigger><SelectContent>{companies.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></label>}
+  {viewer.kind!=='company'&&<label className="flex min-w-0 items-center gap-2"><span className="hidden text-muted-foreground sm:inline">Viewing:</span><Select value={parkOn?'park':selected?.id??""} onValueChange={id=>navigate({to:'.',search:(p:Record<string,unknown>)=>{const rest={...p};delete rest['scope'];return id==='park'?{...rest,scope:'park' as const}:{...rest,company:id};}})}><SelectTrigger aria-label="Viewing company" className="h-9 w-36 bg-card sm:w-48"><SelectValue/></SelectTrigger><SelectContent>{parkOption&&<><SelectItem value="park">Whole park (all members)</SelectItem><SelectSeparator/></>}{companies.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></label>}
   {name?<DropdownMenu><DropdownMenuTrigger className="flex h-9 items-center gap-2 rounded-full border bg-card py-1 pl-1 pr-3 hover:border-primary" aria-label={`Account: ${name}`}><span aria-hidden className="grid size-7 place-items-center rounded-full bg-accent text-[11px] font-semibold text-primary">{initials(name)}</span><span className="hidden max-w-36 truncate font-medium sm:inline">{name}</span><ChevronDown size={14} aria-hidden className="text-muted-foreground"/></DropdownMenuTrigger>
    <DropdownMenuContent align="end" className="w-64">
     <DropdownMenuLabel className="font-normal"><p className="truncate font-medium">{name}</p><p className="truncate text-xs text-muted-foreground">{viewer.kind==='staff'?staffEmail:emailFor(name)}</p><p className="mt-1 text-xs text-muted-foreground">{viewer.kind==='staff'?'Park staff: sees every profile and ranking':'Member company: sees and edits its own data'}</p></DropdownMenuLabel>

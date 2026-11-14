@@ -22,11 +22,18 @@ const fixed:Partial<Record<GuardClass,string>>={
  override_attempt:'I cannot change my role or rules. I can still help you find opportunities for your company.',
  other_company_private:'I cannot share another company\'s private profile or activity. I can only show public facts about other members.',
 };
+/** Same refusals worded for park staff asking about all members ("Whole park" in the Assistant). */
+const parkFixed:Partial<Record<GuardClass,string>>={
+ unclear:'In the park view I answer about the members as a group: their profiles, possible matches, deadlines, shared topics and possible collaborations. Which of these is your question about?',
+ out_of_scope:'That is outside what I can help with. In the park view I answer about members’ profiles, possible matches, deadlines, shared topics and possible collaborations. You could try: "Which members have the weakest profiles?"',
+ override_attempt:'I cannot change my role or rules. I can still answer questions about the members’ profiles and possible matches.',
+ other_company_private:'Members’ chats, saved items and votes are private to each company, even from park staff. I can answer from their profiles and possible matches.',
+};
 /** Fixed code (not AI) decides how each guard class is answered. */
-export function decideReply(g:GuardClass):{answer:boolean;fixedText:string|null;disclaimer:string|null;contactCard:boolean}{
+export function decideReply(g:GuardClass,scope:'company'|'park'='company'):{answer:boolean;fixedText:string|null;disclaimer:string|null;contactCard:boolean}{
  if(g==='in_scope')return {answer:true,fixedText:null,disclaimer:null,contactCard:false};
  if(g==='needs_human')return {answer:true,fixedText:null,disclaimer:humanDisclaimer,contactCard:true};
- return {answer:false,fixedText:fixed[g]!,disclaimer:null,contactCard:false};
+ return {answer:false,fixedText:(scope==='park'?parkFixed[g]:undefined)??fixed[g]!,disclaimer:null,contactCard:false};
 }
 /**
  * Fixed-code check that runs before the AI Guard. It only recognises unmistakable attempts to change the
@@ -60,7 +67,12 @@ export function precheckGuard(message:string):GuardClass|null{return overridePat
 const staffOnly=/\b(eligib\w*|qualif\w*|guarantee\w*|promis\w*|approv\w*|will we (get|receive|win))\b/i;
 const remitArea=/\b(fund\w*|grants?|calls?|vinnova|eu|events?|meetups?|workshops?|seminars?|test\w*|labs?|pilots?|partners?|collaborat\w*|match\w*|opportunit\w*|contacts?|blue science park|bsp)\b/i;
 const businessTopic=/\b(marketing|branding|brand|sales|selling|pric\w*|exports?|international\w*|expan\w*|grow\w*|hiring|recruit\w*|finance|financial|investors?|regulations?|compliance|legal|laws?|sustainab\w*|environment\w*|climate|strategy|plans?|next|advice|patents?|ip)\b/i;
-export function postcheckGuard(message:string,g:GuardClass):GuardClass{
+/** Members' chats, saved items and votes: private to each company, even from park staff. */
+const memberPrivate=/\b(chats?|chatted|conversations?|ask(?:s|ed)? (?:the )?assistant|saved|saves|bookmark\w*|votes?|voted|thumbs|feedback)\b/i;
+export function postcheckGuard(message:string,g:GuardClass,scope:'company'|'park'='company'):GuardClass{
+ // Park view (staff asking about all members): a question about members' chats, saved items or votes always gets the
+ // privacy reply, whatever the AI said (the small model called "What did Techinova ask the assistant?" out of scope).
+ if(scope==='park'&&g!=='override_attempt'&&memberPrivate.test(message))return 'other_company_private';
  if(g==='in_scope'&&staffOnly.test(message))return 'needs_human';
  if((g==='out_of_scope'||g==='in_scope'||(g==='needs_human'&&!staffOnly.test(message)))&&businessTopic.test(message)&&!remitArea.test(message))return 'unclear';
  return g;

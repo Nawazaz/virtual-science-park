@@ -23,7 +23,7 @@ export const Route=createFileRoute('/')({
 });
 const tiles=[{type:'funding',label:'Funding',Icon:HandCoins},{type:'event',label:'Events',Icon:CalendarDays},{type:'testing',label:'Testing',Icon:FlaskConical},{type:'news',label:'News & trends',Icon:Newspaper}] as const;
 function Dashboard(){
- const {selected,companyId,isOwner}=useViewingAs();
+ const {selected,companyId,isOwner,access}=useViewingAs();
  const {data:d,isLoading}=useQuery({...dashboardQuery(companyId??''),enabled:!!companyId});
  const {data:night}=useQuery(nightlyQuery);
  const overnight=(date:string)=>{if(!night)return false;const t=Date.parse(date),s=Date.parse(night.started_at);return t>=s-1000&&t<=s+night.duration_ms+5000;};
@@ -58,6 +58,6 @@ function Dashboard(){
     </section>
    </div></ScrollPanel></aside>
   </div>
-  <FloatingAsk companyId={isOwner?d.company.id:null}/>
+  <FloatingAsk companyId={isOwner||access==='staff'?d.company.id:null} staff={access==='staff'}/>
  </ParkShell>;
 }

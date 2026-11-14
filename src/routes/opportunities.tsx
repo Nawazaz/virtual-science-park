@@ -27,7 +27,7 @@ export const Route=createFileRoute('/opportunities')({
 });
 const sel='h-9 rounded-lg border bg-card px-2 text-sm';
 function Opportunities(){
- const {type='all'}=Route.useSearch();const navigate=useNavigate({from:'/opportunities'});const {selected,companyId,isOwner,canSeePrivate}=useViewingAs();const qc=useQueryClient();
+ const {type='all'}=Route.useSearch();const navigate=useNavigate({from:'/opportunities'});const {selected,companyId,isOwner,canSeePrivate,access}=useViewingAs();const qc=useQueryClient();
  const {data:opps=[]}=useQuery(opportunitiesQuery);const {data:sources=[]}=useQuery(sourcesQuery);
  const {data:m}=useQuery({...matchesQuery(companyId??''),enabled:!!companyId});const {data:company}=useQuery({...companyQuery(companyId??''),enabled:!!companyId});
  const refreshFn=useServerFn(refreshSourcesFn);const fbFn=useServerFn(setFeedback);const [busy,setBusy]=useState('');
@@ -67,6 +67,6 @@ function Opportunities(){
   {rows.length===0?<EmptyState icon={<Target/>} title={type==='saved'?'Nothing saved yet':'Nothing matches these filters'}>{type==='saved'?'Save opportunities to keep a shortlist.':companyId?'Loosen the filters, or build the profile and re-run matching.':'Choose a company in the top bar.'}</EmptyState>:
   <ScrollPanel label={`${rows.length} opportunities`} fit={29} min={20}><div className="space-y-3">{rows.map(({o,match})=>{const f=fb(o.id);const used=match?items.filter(i=>match.matched_profile_item_ids.includes(i.id)):undefined;
    return <OpportunityCard key={o.id} o={o} score={match?.score} reason={match?.reason} checkFirst={match?.check_first} nextStep={match?.next_step} companyId={companyId} usedItems={used} weakBasis={!!match&&(used?.length??0)===0} actions={isOwner?<><Button size="sm" variant={f?.saved?'default':'outline'} onClick={()=>send(o.id,!f?.saved,(f?.vote as 'up'|'down'|null)??null,false)}>{f?.saved?<BookmarkCheck/>:<Bookmark/>}{f?.saved?'Saved':'Save'}</Button><Button size="sm" variant={f?.vote==='up'?'default':'ghost'} aria-label="Helpful" aria-pressed={f?.vote==='up'} onClick={()=>send(o.id,!!f?.saved,f?.vote==='up'?null:'up',true)}><ThumbsUp/></Button><Button size="sm" variant={f?.vote==='down'?'default':'ghost'} aria-label="Not relevant" aria-pressed={f?.vote==='down'} onClick={()=>send(o.id,!!f?.saved,f?.vote==='down'?null:'down',true)}><ThumbsDown/></Button></>:undefined}/>;})}</div></ScrollPanel>}
-  <FloatingAsk companyId={isOwner?companyId:null}/>
+  <FloatingAsk companyId={isOwner||access==='staff'?companyId:null} staff={access==='staff'}/>
  </ParkShell>;
 }

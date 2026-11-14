@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { accessTo, canActAs, canSeeProfile, isSignedIn, isStaff, runVisible, visibleCompany, type Viewer } from '@/lib/access-rules';
+import { accessTo, canActAs, canAskAbout, canSeeProfile, isSignedIn, isStaff, parkAssistantAgent, runVisible, staffAssistantAgent, visibleCompany, type Viewer } from '@/lib/access-rules';
 import { decodeViewer, encodeViewer } from '@/lib/session-token.server';
 
 const A = '11111111-1111-4111-8111-111111111111';
@@ -52,6 +52,27 @@ describe('Who may see what', () => {
     expect(runVisible(guest, { agent: 'Profile builder', company_id: B })).toBe(false);
     expect(runVisible(staff, { agent: 'Profile builder', company_id: B })).toBe(true);
     expect(runVisible(guest, { agent: 'Nightly run', company_id: null })).toBe(true);
+  });
+
+  it('lets staff ask the assistant about any company, in a run log the company does not see', () => {
+    expect(canAskAbout(staff, B)).toBe(true);
+    expect(canAskAbout({ kind: 'company', companyId: B }, B)).toBe(true);
+    expect(canAskAbout(asA, B)).toBe(false);
+    expect(canAskAbout(guest, B)).toBe(false);
+    // Asking is not acting as the company: staff still can't read its chat or change its profile.
+    expect(canActAs(staff, B)).toBe(false);
+    const staffChat = { agent: staffAssistantAgent, company_id: B };
+    expect(runVisible(staff, staffChat)).toBe(true);
+    expect(runVisible({ kind: 'company', companyId: B }, staffChat)).toBe(false);
+    expect(runVisible(asA, staffChat)).toBe(false);
+    expect(runVisible(guest, staffChat)).toBe(false);
+  });
+
+  it('shows park-wide assistant runs to staff only, though they belong to no company', () => {
+    const parkChat = { agent: parkAssistantAgent, company_id: null };
+    expect(runVisible(staff, parkChat)).toBe(true);
+    expect(runVisible({ kind: 'company', companyId: B }, parkChat)).toBe(false);
+    expect(runVisible(guest, parkChat)).toBe(false);
   });
 });
 

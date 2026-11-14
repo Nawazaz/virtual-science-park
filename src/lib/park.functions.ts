@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { completeness,parseMemberUrls } from './park-rules';
 import { buildGraph,minTopLinkScore,shownLinks,topicLabel } from './knowledge-graph';
-import { canActAs, canSeeProfile, isPublicItem, runVisible } from './access-rules';
+import { canActAs, canAskAbout, canSeeProfile, isPublicItem, notAllowedMessage, runVisible } from './access-rules';
 import { isListed } from './hidden-companies';
 const id=z.object({id:z.string().uuid()});
 const viewer=async()=>(await import('./access.server')).currentViewer();
@@ -57,9 +57,17 @@ export const importMembers=createServerFn({method:'POST'}).inputValidator(z.obje
  return {added:fresh.length,skipped:rows.length-fresh.length};
 });
 export const getChat=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{if(!canActAs(await viewer(),data.id))return [];const {publicDb}=await import('./db.server');const {data:rows,error}=await publicDb().from('chat_messages').select('*').eq('company_id',data.id).order('created_at').limit(60);if(error)throw new Error(error.message);return rows??[];});
-export const askAssistant=createServerFn({method:'POST'}).inputValidator(z.object({company_id:z.string().uuid(),question:z.string().trim().min(1).max(1000)})).handler(async({data})=>{
- const {requireOwner}=await import('./access.server');requireOwner(data.company_id);
- const {answerQuestion}=await import('./assistant.server');return answerQuestion(data.company_id,data.question);
+// history: the staff conversation so far, kept in the browser (staff chats are never saved to the company's chat).
+const chatHistory=z.array(z.object({role:z.enum(['user','assistant']),content:z.string().max(4000)})).max(12).optional();
+export const askAssistant=createServerFn({method:'POST'}).inputValidator(z.object({company_id:z.string().uuid(),question:z.string().trim().min(1).max(1000),history:chatHistory})).handler(async({data})=>{
+ const v=await viewer();if(!canAskAbout(v,data.company_id))throw new Error(notAllowedMessage);
+ const {answerQuestion}=await import('./assistant.server');
+ return answerQuestion(data.company_id,data.question,canActAs(v,data.company_id)?{asker:'company'}:{asker:'staff',history:data.history??[]});
+});
+/** Staff only: questions about all members at once ("Whole park" in Viewing on the Assistant page). */
+export const askParkAssistant=createServerFn({method:'POST'}).inputValidator(z.object({question:z.string().trim().min(1).max(1000),history:chatHistory})).handler(async({data})=>{
+ const {requireStaff}=await import('./access.server');requireStaff();
+ const {answerParkQuestion}=await import('./assistant.server');return answerParkQuestion(data.question,data.history??[]);
 });
 export const runBoundaryTestsFn=createServerFn({method:'POST'}).handler(async()=>{const {requireSignedIn}=await import('./access.server');requireSignedIn();const {runBoundaryTests}=await import('./assistant.server');const {boundaryTests}=await import('./park-rules');return runBoundaryTests(boundaryTests);});
 export const getStaffOverview=createServerFn({method:'GET'}).handler(async()=>{

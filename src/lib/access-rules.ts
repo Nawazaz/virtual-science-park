@@ -18,6 +18,18 @@ export const canSeeProfile = (viewer: Viewer, companyId: string) => accessTo(vie
 /** Chat, feedback and profile edits are the company's own interactions: the company only, not staff. */
 export const canActAs = (viewer: Viewer, companyId: string) => accessTo(viewer, companyId) === 'owner';
 
+/**
+ * Asking the assistant about a company: the company itself (its saved conversation) and park staff.
+ * Staff answers come only from data staff may already see (profile, priorities, matches); a staff
+ * conversation is never saved to the company's chat, and staff never read the company's own chat.
+ */
+export const canAskAbout = (viewer: Viewer, companyId: string) => canSeeProfile(viewer, companyId);
+
+/** Run-log name for staff questions, kept apart from the company's own "Assistant" runs. */
+export const staffAssistantAgent = 'Staff assistant';
+/** Run-log name for staff questions about the whole park (all members at once). */
+export const parkAssistantAgent = 'Park assistant';
+
 /** Public = found by the AI on public pages and not changed or added by the company. */
 export const isPublicItem = (item: { confirmed_by_user: boolean }) => !item.confirmed_by_user;
 
@@ -30,10 +42,15 @@ export function visibleCompany<C extends { id: string; profile_items: { confirme
   return out;
 }
 
-/** Run log rows: park-wide runs for everyone; a company's runs like its profile; assistant answers only for the company. */
+/** Run log rows: park-wide runs for everyone; a company's runs like its profile; assistant answers only for the
+ * company; staff assistant answers only for staff (the company doesn't see what staff asked about it). */
 export function runVisible(viewer: Viewer, run: { agent: string; company_id: string | null }) {
+  // Park-wide answers draw on every member's private profile and rankings: staff only, though no company is set.
+  if (run.agent === parkAssistantAgent) return viewer.kind === 'staff';
   if (!run.company_id) return true;
-  return run.agent === 'Assistant' ? canActAs(viewer, run.company_id) : canSeeProfile(viewer, run.company_id);
+  if (run.agent === 'Assistant') return canActAs(viewer, run.company_id);
+  if (run.agent === staffAssistantAgent) return viewer.kind === 'staff';
+  return canSeeProfile(viewer, run.company_id);
 }
 
 export const notAllowedMessage = 'Sign in as this company to do that (top bar).';
