@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { connectionBasis,completeness,parseMemberUrls,itemsWithTopics } from './park-rules';
+import { completeness,parseMemberUrls } from './park-rules';
+import { buildGraph,minTopLinkScore,shownLinks,topicLabel } from './knowledge-graph';
 import { canActAs, canSeeProfile, isPublicItem, runVisible } from './access-rules';
 import { isListed } from './hidden-companies';
 const id=z.object({id:z.string().uuid()});
@@ -17,14 +18,19 @@ async function allProfiles(){const {publicDb}=await import('./db.server');const 
 // Connections compare public items only; a company's own edits count for itself, never for others.
 type Profiled=Awaited<ReturnType<typeof allProfiles>>[number];
 const publicOnly=(c:Profiled):Profiled=>({...c,profile_items:c.profile_items.filter(isPublicItem)});
+// Knowledge graph (src/lib/knowledge-graph.ts): companies -> topics from profile facts, plus members named in a profile.
 export const getConnections=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{
  const v=await viewer();const all=await allProfiles();const found=all.find(c=>c.id===data.id);if(!found)return [];const me=canSeeProfile(v,found.id)?found:publicOnly(found);
- return all.map(publicOnly).filter(c=>c.id!==me.id).map(c=>{const basis=connectionBasis(me.profile_items,c.profile_items);return {id:c.id,name:c.name,website_url:c.website_url,basis,mine:itemsWithTopics(me.profile_items,basis),theirs:itemsWithTopics(c.profile_items,basis)};}).filter(c=>c.basis.length>0).sort((a,b)=>b.basis.length-a.basis.length);
+ const others=all.map(publicOnly).filter(c=>c.id!==me.id);const g=buildGraph([me,...others]);
+ const support=(cid:string,shared:string[])=>(g.edges.get(cid)??[]).filter(e=>shared.includes(e.topic)).flatMap(e=>e.items).filter((x,i,a)=>a.findIndex(y=>y.id===x.id)===i).slice(0,4);
+ return g.links.filter(l=>(l.a===me.id||l.b===me.id)&&(l.named.length>0||l.score>=minTopLinkScore)).slice(0,10).map(l=>{const c=others.find(o=>o.id===(l.a===me.id?l.b:l.a))!;
+  return {id:c.id,name:c.name,website_url:c.website_url,basis:l.shared.map(topicLabel),score:l.score,named:l.named.map(n=>n.item.value),mine:support(me.id,l.shared),theirs:support(c.id,l.shared)};});
 });
 export const getAllConnections=createServerFn({method:'GET'}).handler(async()=>{
- const all=(await allProfiles()).map(publicOnly);const pairs:{a:{id:string;name:string};b:{id:string;name:string};basis:string[]}[]=[];
- for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){const basis=connectionBasis(all[i]!.profile_items,all[j]!.profile_items);if(basis.length)pairs.push({a:{id:all[i]!.id,name:all[i]!.name},b:{id:all[j]!.id,name:all[j]!.name},basis});}
- return {nodes:all.map(c=>({id:c.id,name:c.name,built:c.profile_items.some(i=>i.kind!=='missing')})),pairs:pairs.sort((x,y)=>y.basis.length-x.basis.length).slice(0,30)};
+ const all=(await allProfiles()).map(publicOnly);const g=buildGraph(all);const nameOf=(cid:string)=>all.find(c=>c.id===cid)!.name;
+ return {nodes:all.map(c=>({id:c.id,name:c.name,built:c.profile_items.some(i=>i.kind!=='missing'),topics:g.edges.get(c.id)!.map(e=>e.topic)})),
+  topics:g.topics.map(t=>({id:t.id,label:t.label,category:t.category,companies:t.companies})),
+  pairs:shownLinks(g).map(l=>({a:{id:l.a,name:nameOf(l.a)},b:{id:l.b,name:nameOf(l.b)},basis:l.shared.map(topicLabel),score:l.score,named:l.named.map(n=>n.item.value)}))};
 });
 export const getDashboard=createServerFn({method:'GET'}).inputValidator(id).handler(async({data})=>{
  const {publicDb}=await import('./db.server');const db=publicDb();
