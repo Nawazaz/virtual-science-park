@@ -51,10 +51,15 @@ export const priorityForType:Record<string,string>={funding:'funding',event:'eve
 /** Transparent breakdown of the deterministic score. */
 export function scoreBreakdown(input:ScoreInput){
  const valid=input.matchedItems.map(itemWeight).filter(x=>x>0);const w=valid.length?Math.max(...valid):NO_BASIS_WEIGHT;
- const ai=Math.max(0,Math.min(100,input.aiScore));const weighted=Math.round(ai*w);
+ return applyScoreRules({ai:input.aiScore,evidenceWeight:w,weakBasis:!valid.length},input);
+}
+export type RuleInput=Pick<ScoreInput,'opportunity'|'priorities'|'downVoted'>;
+/** The code-only part of the score. Re-ranking after a vote or priority change reuses the stored AI score and evidence weight, so no AI call is needed. */
+export function applyScoreRules(base:{ai:number;evidenceWeight:number;weakBasis:boolean},input:RuleInput){
+ const ai=Math.max(0,Math.min(100,base.ai));const w=base.evidenceWeight;const weighted=Math.round(ai*w);
  const wanted=priorityForType[input.opportunity.type];const boost=wanted&&input.priorities.includes(wanted)?PRIORITY_BOOST:0;
  let penalty=0;for(const d of input.downVoted){if(d.id===input.opportunity.id)penalty+=DOWN_VOTE_PENALTY;else if(d.type===input.opportunity.type){const a=words(d.title);const shared=[...words(input.opportunity.title)].filter(x=>a.has(x)).length;if(shared>=2)penalty+=SIMILAR_PENALTY;}}
- return {ai,evidenceWeight:w,weakBasis:!valid.length,weighted,priorityBoost:boost,feedbackPenalty:penalty,total:Math.max(0,Math.min(100,weighted+boost+penalty))};
+ return {ai,evidenceWeight:w,weakBasis:base.weakBasis,weighted,priorityBoost:boost,feedbackPenalty:penalty,total:Math.max(0,Math.min(100,weighted+boost+penalty))};
 }
 export function scoreMatch(input:ScoreInput){return scoreBreakdown(input).total;}
 /** Never claim eligibility. */
