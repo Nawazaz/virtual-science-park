@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { simulatedSamples, badgesFor, scoreMatch, scoreBreakdown, sanitizeWording, sourceNames, isWeakBasis } from '@/lib/opportunity-rules';
+import { simulatedSamples, badgesFor, scoreMatch, scoreBreakdown, applyScoreRules, sanitizeWording, sourceNames, isWeakBasis } from '@/lib/opportunity-rules';
 const opp = { id: 'o1', type: 'funding', title: 'Innovation grant' };
 const base = { aiScore: 80, opportunity: opp, priorities: [] as string[], downVoted: [] as typeof opp[], matchedItems: [] as { id: string; kind: string; confirmed_by_user: boolean }[] };
 describe('Opportunity rules', () => {
@@ -27,4 +27,16 @@ describe('Opportunity rules', () => {
   });
   it.each(['The company is eligible for this call.', 'Eligibility looks strong; ineligible partners excluded.', 'You are ELIGIBLE'])('no reason text contains "eligible": %s', (t) => expect(sanitizeWording(t).toLowerCase()).not.toMatch(/eligib/));
   it.each(['Funding is guaranteed.', 'We guarantee a place.', 'This guarantees nothing'])('no text contains "guarantee": %s', (t) => expect(sanitizeWording(t).toLowerCase()).not.toMatch(/guarantee/));
+  it('re-ranking from a stored breakdown gives the same score as a full run', () => {
+    const full = scoreBreakdown({ ...base, aiScore: 73, priorities: ['funding'], matchedItems: [{ id: 'b', kind: 'fact', confirmed_by_user: false }] });
+    expect(applyScoreRules(full, { opportunity: opp, priorities: ['funding'], downVoted: [] })).toEqual(full);
+  });
+  it('a down vote re-ranked by code subtracts exactly 30, no AI needed', () => {
+    const stored = scoreBreakdown({ ...base, aiScore: 90, matchedItems: [{ id: 'a', kind: 'fact', confirmed_by_user: true }] });
+    expect(stored.total - applyScoreRules(stored, { opportunity: opp, priorities: [], downVoted: [opp] }).total).toBe(30);
+  });
+  it('a weak basis stays weak after re-ranking', () => {
+    const stored = scoreBreakdown({ ...base, aiScore: 60 });
+    expect(applyScoreRules(stored, { opportunity: opp, priorities: ['funding'], downVoted: [] })).toMatchObject({ weakBasis: true, evidenceWeight: 0.4, total: 39 });
+  });
 });

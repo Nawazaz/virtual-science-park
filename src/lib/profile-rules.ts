@@ -19,6 +19,11 @@ export function validateEvidence(items: GeneratedItem[], pages:PageText[]): Gene
  for(const field of fields) if(!checked.some(i=>i.field===field)) checked.push({field,value:'Not found on the reviewed pages.',kind:field==='possible_interests'?'inferred':'missing',evidence_quote:null,source_url:null});
  return checked;
 }
+/** A company save. If the text changed, the old quote and link no longer support it, so they are dropped ("Added by company"). */
+export function confirmedItemUpdate(field:Field,newValue:string,old:{value:string}|null){
+ const changed=!old||old.value.trim()!==newValue.trim();
+ return {field,value:newValue,confirmed_by_user:true,kind:'fact' as const,...(changed?{evidence_quote:null,source_url:null}:{})};
+}
 export function mergeConfirmed(generated:GeneratedItem[], confirmed:{field:string;confirmed_by_user:boolean}[]) { return generated.filter(item=>!confirmed.some(c=>c.confirmed_by_user&&c.field===item.field)); }
 
 /** Deterministic checks reported to agent_runs after a profile build. */

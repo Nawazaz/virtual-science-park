@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ParkShell, PageHeader, EmptyState } from '@/components/park-shell';
 import { companiesQuery, companyQuery, matchesQuery, opportunitiesQuery, sourcesQuery } from '@/lib/company-queries';
-import { refreshSourcesFn, setFeedback } from '@/lib/opportunities.functions';
+import { refreshSourcesFn, rescoreFn, setFeedback } from '@/lib/opportunities.functions';
 import { runMatchClient } from '@/lib/build-profile-client';
 import { useViewingAs } from '@/hooks/use-viewing-as';
 import { OpportunityCard } from '@/components/park/opportunity-card';
@@ -34,7 +34,10 @@ function Opportunities(){
  const fb=(id:string)=>m?.feedback.find(f=>f.opportunity_id===id);
  const rematch=async(msg='Rankings updated')=>{if(!companyId)return;setBusy('Ranking possible matches…');try{await runMatchClient(companyId,setBusy);await Promise.all([qc.invalidateQueries({queryKey:['matches',companyId]}),qc.invalidateQueries({queryKey:['dashboard',companyId]})]);toast.success(msg);}catch(e){toast.error(e instanceof Error?e.message:'Matching failed');}finally{setBusy('');}};
  const refresh=async()=>{setBusy('Checking sources…');try{const r=await refreshFn();await Promise.all([qc.invalidateQueries({queryKey:['opportunities']}),qc.invalidateQueries({queryKey:['sources']})]);toast.success(r.map(x=>`${x.source}: ${x.found}`).join(' · '));}catch(e){toast.error(e instanceof Error?e.message:'Refresh failed');}finally{setBusy('');}};
- const send=async(id:string,saved:boolean,vote:'up'|'down'|null,rerank:boolean)=>{if(!companyId)return;try{await fbFn({data:{company_id:companyId,opportunity_id:id,saved,vote}});await qc.invalidateQueries({queryKey:['matches',companyId]});if(rerank)void rematch('Thanks, rankings updated');}catch(e){toast.error(e instanceof Error?e.message:'Could not save');}};
+ const rescore=useServerFn(rescoreFn);
+ // Votes change only the code part of the score: re-rank instantly from stored AI scores; run the AI only if none are stored yet.
+ const rerankByCode=async()=>{if(!companyId)return;try{const r=await rescore({data:{company_id:companyId}});if(r.needsAi)return rematch('Thanks, rankings updated');await Promise.all([qc.invalidateQueries({queryKey:['matches',companyId]}),qc.invalidateQueries({queryKey:['dashboard',companyId]})]);toast.success('Thanks, rankings updated');}catch(e){toast.error(e instanceof Error?e.message:'Re-ranking failed');}};
+ const send=async(id:string,saved:boolean,vote:'up'|'down'|null,rerank:boolean)=>{if(!companyId)return;try{await fbFn({data:{company_id:companyId,opportunity_id:id,saved,vote}});await qc.invalidateQueries({queryKey:['matches',companyId]});if(rerank)void rerankByCode();}catch(e){toast.error(e instanceof Error?e.message:'Could not save');}};
  const items=company?.profile_items??[];
  const rows=useMemo(()=>{const byId=new Map((m?.matches??[]).filter(x=>x.opportunity).map(x=>[x.opportunity_id,x]));
   let list=opps.map(o=>({o,match:byId.get(o.id)}));

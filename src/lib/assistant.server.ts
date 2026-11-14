@@ -1,7 +1,7 @@
 import { Output, streamText } from 'ai';
 import { z } from 'zod';
 import { publicDb } from './db.server';
-import { decideReply, guardClasses, type GuardClass } from './park-rules';
+import { decideReply, guardClasses, precheckGuard, type GuardClass } from './park-rules';
 import { sanitizeWording } from './opportunity-rules';
 import { logRun } from './agent-runs.server';
 import { agentModel, isLocalAi, localModelName, type Tier } from './ai/model.server';
@@ -20,8 +20,8 @@ Classify into exactly one class:
 - other_company_private: asks for another company's private profile edits, feedback, chats, saved items or activity.
 - needs_human: asks for a decision, promise, guarantee, eligibility judgement or commitment that only funders or Blue Science Park staff can give.
 Pick the single best class.`;
-type GuardResult={guard_class:GuardClass;reason:string;runId:string|undefined;waitedMs:number;model:string;fellBack:boolean};
-async function guardOnce(message:string,runId:string|undefined,lane:Lane,tier:Tier):Promise<Omit<GuardResult,'fellBack'>>{
+type GuardResult={guard_class:GuardClass;reason:string;runId:string|undefined;waitedMs:number;model:string;fellBack:boolean;byRule:boolean};
+async function guardOnce(message:string,runId:string|undefined,lane:Lane,tier:Tier):Promise<Omit<GuardResult,'fellBack'|'byRule'>>{
  const ai=agentModel(runId,lane,tier);const {state,runId:getRun}=ai;
  // Temperature 0 on the local model: the same question always gets the same class.
  try{const r=streamText({model:ai.model,maxRetries:0,...(ai.local?{temperature:0}:{}),instructions:GUARD_PROMPT,messages:[{role:'user',content:JSON.stringify({message_to_classify:message})}],output:Output.object({schema:z.object({guard_class:z.enum(guardClasses),reason:z.string()})}),providerOptions:ai.providerOptions});
@@ -29,13 +29,16 @@ async function guardOnce(message:string,runId:string|undefined,lane:Lane,tier:Ti
  catch(e){if(state.failure){await pauseIf(state.failure);throw new Error(state.failure.message);}throw e;}
 }
 // lane: a person waiting in chat goes ahead of background work on the local model (src/lib/ai/dispatcher.ts).
-// Option C: the Guard runs on the junior model (OLLAMA_JUNIOR_MODEL) with its own queue; if the junior
-// fails or returns no class, the senior model decides instead. Fixed code still picks the reply.
+// 1. Fixed-code check first: unmistakable override or injection wording is refused without asking the AI.
+// 2. Option C: the AI Guard runs on the junior model (OLLAMA_JUNIOR_MODEL) with its own queue; if the junior
+//    fails or returns no class, the senior model decides instead. Fixed code still picks the reply.
 export async function classifyGuard(message:string,runId?:string,lane:Lane='chat'):Promise<GuardResult>{
+ const ruled=precheckGuard(message);if(ruled)return {guard_class:ruled,reason:'Matched a fixed override pattern',runId,waitedMs:0,model:'fixed rule',fellBack:false,byRule:true};
+ const done=(g:Omit<GuardResult,'fellBack'|'byRule'>,fellBack:boolean):GuardResult=>({...g,fellBack,byRule:false});
  await ensureAvailable();
- if(!isLocalAi()||localModelName('junior')===localModelName('senior'))return {...await guardOnce(message,runId,lane,'senior'),fellBack:false};
- try{return {...await guardOnce(message,runId,lane,'junior'),fellBack:false};}
- catch{return {...await guardOnce(message,runId,lane,'senior'),fellBack:true};}
+ if(!isLocalAi()||localModelName('junior')===localModelName('senior'))return done(await guardOnce(message,runId,lane,'senior'),false);
+ try{return done(await guardOnce(message,runId,lane,'junior'),false);}
+ catch{return done(await guardOnce(message,runId,lane,'senior'),true);}
 }
 export async function answerQuestion(companyId:string,question:string){
  const started=Date.now();const db=publicDb();
@@ -63,7 +66,7 @@ export async function answerQuestion(companyId:string,question:string){
  }
  const {data:row,error}=await db.from('chat_messages').insert({company_id:companyId,role:'assistant',content,guard_class:guard.guard_class,sources:sources as unknown as Json}).select().single();if(error)throw new Error(error.message);
  await logRun({agent:'Assistant',company_id:companyId,started,sources:sources.map(s=>s.url??s.title),output:`Guard: ${guard.guard_class} (${guard.reason})\n${content}`,checks:[
-  {name:'Guard classified message',passed:true,detail:`${guard.guard_class.replace(/_/g,' ')} (decided by ${guard.model}${guard.fellBack?'; the junior model failed, so the senior decided':''})`},
+  {name:'Guard classified message',passed:true,detail:`${guard.guard_class.replace(/_/g,' ')}${guard.byRule?' (fixed rule, no AI needed)':` (AI Guard: ${guard.model}${guard.fellBack?'; the junior model failed, so the senior decided':''})`}`},
   {name:'Reply chosen by fixed code',passed:true,detail:decision.answer?(decision.disclaimer?'Answered with staff disclaimer':'Answered'):'Fixed refusal, no AI answer'},
   {name:'Data scoped to this company',passed:true,detail:'Only this company’s profile and matches were loaded'},
   {name:'Source links listed',passed:!decision.answer||sources.length>0,detail:decision.answer?`${sources.length} source${sources.length===1?'':'s'}`:'Not needed'},

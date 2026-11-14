@@ -1,6 +1,6 @@
 export type OpportunityType='funding'|'event'|'testing'|'news';
 export type LocationMode='online'|'in_person'|'unknown';
-export type OpportunityInput={external_key:string;type:OpportunityType;title:string;summary:string;source_name:string;source_url:string|null;deadline_or_date:string|null;location_mode:LocationMode;audience:string|null;simulated:boolean};
+export type OpportunityInput={external_key:string;type:OpportunityType;title:string;summary:string;source_name:string;source_url:string|null;deadline_or_date:string|null;location_mode:LocationMode;audience:string|null;simulated:boolean;purpose?:string|null;key_requirements?:string|null};
 export const NEWS_SOURCE='Blue Science Park news';
 export const TESTBED_SOURCE='Curated by Blue Science Park staff';
 export const sourceNames=['Vinnova','Blue Science Park events','EU Funding & Tenders',NEWS_SOURCE,TESTBED_SOURCE] as const;
@@ -11,11 +11,22 @@ export const legacySourceNames:Partial<Record<SourceName,string[]>>={[NEWS_SOURC
 const stripHtml=(s:string)=>s.replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&amp;/g,'&').replace(/&#8211;/g,'–').replace(/&#82(16|17);/g,'’').replace(/&#82(20|21);/g,'"').replace(/&[a-z#0-9]+;/gi,' ').replace(/\s+/g,' ').trim();
 export type WpPost={link:string;date:string;title:{rendered:string};excerpt:{rendered:string}};
 /** Real news: last 120 days, HTML stripped, deduplicated by link. */
+/** Vinnova's API lists rounds changed since a date. A rolling window keeps every open call as time passes;
+ * 6 months caught all open calls on 2026-11-14 (a fixed 2026-08-01 missed one) while staying fast (the API slows down with longer windows). */
+export const VINNOVA_WINDOW_DAYS=183;
+export function vinnovaSince(now=new Date(),days=VINNOVA_WINDOW_DAYS){return new Date(now.getTime()-days*864e5).toISOString().slice(0,10);}
 export function newsFromPosts(posts:WpPost[],now=new Date()):OpportunityInput[]{
  const cutoff=now.getTime()-120*864e5;const seen=new Set<string>();const out:OpportunityInput[]=[];
  for(const p of posts){if(!p.link||seen.has(p.link))continue;const t=Date.parse(p.date);if(!(t>=cutoff))continue;seen.add(p.link);
   out.push({external_key:`bspnews:${p.link}`,type:'news',title:stripHtml(p.title.rendered).slice(0,200),summary:stripHtml(p.excerpt.rendered).slice(0,400),source_name:NEWS_SOURCE,source_url:p.link,deadline_or_date:p.date.slice(0,10),location_mode:'unknown',audience:null,simulated:false});}
  return out;
+}
+/** Vinnova's fixed call texts: 1 = what you can apply for, 2 = who can apply, 3 = how much. */
+export type VinnovaWebText={TextID:number;TextSv?:string|null;TextEn?:string|null};
+export function vinnovaDetails(texts:VinnovaWebText[]|null|undefined):{purpose:string|null;key_requirements:string|null}{
+ const text=(id:number)=>{const t=(texts??[]).find(x=>x.TextID===id);const en=stripHtml(t?.TextEn??'');return (en||stripHtml(t?.TextSv??'')).slice(0,400)||null;};
+ const who=text(2);const amount=text(3);
+ return {purpose:text(1),key_requirements:[who&&`Who can apply: ${who}`,amount&&`How much: ${amount}`].filter(Boolean).join(' ')||null};
 }
 export type Testbed={id:string;name:string;organisation:string;description:string;what_you_can_test:string;how_to_start:string;location:string;url:string;active:boolean};
 export type TestbedOpportunity=OpportunityInput&{purpose:string|null;key_requirements:string|null};
@@ -51,10 +62,15 @@ export const priorityForType:Record<string,string>={funding:'funding',event:'eve
 /** Transparent breakdown of the deterministic score. */
 export function scoreBreakdown(input:ScoreInput){
  const valid=input.matchedItems.map(itemWeight).filter(x=>x>0);const w=valid.length?Math.max(...valid):NO_BASIS_WEIGHT;
- const ai=Math.max(0,Math.min(100,input.aiScore));const weighted=Math.round(ai*w);
+ return applyScoreRules({ai:input.aiScore,evidenceWeight:w,weakBasis:!valid.length},input);
+}
+export type RuleInput=Pick<ScoreInput,'opportunity'|'priorities'|'downVoted'>;
+/** The code-only part of the score. Re-ranking after a vote or priority change reuses the stored AI score and evidence weight, so no AI call is needed. */
+export function applyScoreRules(base:{ai:number;evidenceWeight:number;weakBasis:boolean},input:RuleInput){
+ const ai=Math.max(0,Math.min(100,base.ai));const w=base.evidenceWeight;const weighted=Math.round(ai*w);
  const wanted=priorityForType[input.opportunity.type];const boost=wanted&&input.priorities.includes(wanted)?PRIORITY_BOOST:0;
  let penalty=0;for(const d of input.downVoted){if(d.id===input.opportunity.id)penalty+=DOWN_VOTE_PENALTY;else if(d.type===input.opportunity.type){const a=words(d.title);const shared=[...words(input.opportunity.title)].filter(x=>a.has(x)).length;if(shared>=2)penalty+=SIMILAR_PENALTY;}}
- return {ai,evidenceWeight:w,weakBasis:!valid.length,weighted,priorityBoost:boost,feedbackPenalty:penalty,total:Math.max(0,Math.min(100,weighted+boost+penalty))};
+ return {ai,evidenceWeight:w,weakBasis:base.weakBasis,weighted,priorityBoost:boost,feedbackPenalty:penalty,total:Math.max(0,Math.min(100,weighted+boost+penalty))};
 }
 export function scoreMatch(input:ScoreInput){return scoreBreakdown(input).total;}
 /** Never claim eligibility. */
