@@ -118,7 +118,7 @@ choose an account from the dropdown to fill in the form.
   you see that company's full profile, rankings and chat, and you can edit
   them. Other companies show only what the AI found on their public pages.
 - **Blue Science Park staff** (`staff@demo.vsp`): you see every profile and
-  ranking, plus the staff page and Compare. Chats and feedback stay private to
+  ranking, plus Park insights and Compare. Chats and feedback stay private to
   each company.
 - **Visitor** (not signed in): you see public profiles only.
 

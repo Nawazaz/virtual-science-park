@@ -121,6 +121,36 @@ export const minLinkScore = 1.5;
 /** Each company also keeps its 2 best links if they reach this weight, so a company with one rarer topic isn't left alone. */
 export const minTopLinkScore = 1.0;
 
+/**
+ * Collaboration clusters for Park insights: small groups built greedily from the strongest links
+ * (named or score >= minScore), strongest first, each capped at `maxSize` members. Chaining every link
+ * would join almost the whole park into one group, which says nothing.
+ */
+export function collabClusters<P extends { a: { id: string; name: string }; b: { id: string; name: string }; basis: string[]; score: number; named: string[] }>(
+  pairs: P[], maxSize = 5, minScore = 3,
+) {
+  const strong = pairs.filter((p) => p.named.length || p.score >= minScore).sort((x, y) => y.score - x.score);
+  const clusterOf = new Map<string, number>();
+  const clusters: { ids: string[]; names: string[]; topics: Map<string, number>; score: number }[] = [];
+  const add = (c: number, m: { id: string; name: string }) => { clusters[c]!.ids.push(m.id); clusters[c]!.names.push(m.name); clusterOf.set(m.id, c); };
+  for (const p of strong) {
+    const ca = clusterOf.get(p.a.id), cb = clusterOf.get(p.b.id);
+    let c: number | undefined;
+    if (ca === undefined && cb === undefined) {
+      c = clusters.push({ ids: [], names: [], topics: new Map(), score: 0 }) - 1;
+      add(c, p.a); add(c, p.b);
+    } else if (ca !== undefined && cb === undefined && clusters[ca]!.ids.length < maxSize) { c = ca; add(c, p.b); }
+    else if (cb !== undefined && ca === undefined && clusters[cb]!.ids.length < maxSize) { c = cb; add(c, p.a); }
+    else if (ca !== undefined && ca === cb) c = ca;
+    if (c === undefined) continue;
+    clusters[c]!.score += p.score;
+    for (const t of p.basis) clusters[c]!.topics.set(t, (clusters[c]!.topics.get(t) ?? 0) + 1);
+  }
+  return clusters
+    .map((c) => ({ names: c.names, topics: [...c.topics.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t).slice(0, 4), score: Math.round(c.score * 10) / 10 }))
+    .sort((a, b) => b.score - a.score);
+}
+
 /** The links to show: named or strong ones, plus each company's 2 best reasonably strong links. */
 export function shownLinks(g: KnowledgeGraph): Link[] {
   const keep = new Set<Link>(g.links.filter((l) => l.named.length || l.score >= minLinkScore));

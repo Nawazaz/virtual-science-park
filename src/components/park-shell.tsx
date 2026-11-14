@@ -15,10 +15,10 @@ const nav=[
  {to:'/compare',label:'Compare',Icon:Columns3},
  {to:'/connections',label:'Connections',Icon:Network},
  {to:'/assistant',label:'Assistant',Icon:MessagesSquare},
- {to:'/staff',label:'For staff',Icon:ClipboardList,staffOnly:true},
+ {to:'/staff',label:'Park insights',Icon:ClipboardList,staffOnly:true},
  {to:'/trust',label:'Trust & quality',Icon:ShieldCheck},
 ] as const;
-/** Tabs for the signed-in viewer: "For staff" only for park staff. Decided after mount so server and browser render the same first. */
+/** Tabs for the signed-in viewer: "Park insights" only for park staff. Decided after mount so server and browser render the same first. */
 function useNavLinks(){const {viewer}=useViewingAs();const [mounted,setMounted]=useState(false);useEffect(()=>setMounted(true),[]);
  return nav.filter(n=>!('staffOnly' in n)||(mounted&&viewer.kind==='staff'));}
 function ThemeToggle(){const [dark,setDark]=useState(false);useEffect(()=>setDark(document.documentElement.classList.contains('dark')),[]);

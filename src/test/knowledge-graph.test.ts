@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGraph, companyTopics, namedEdges, shownLinks, type GraphCompany } from '@/lib/knowledge-graph';
+import { buildGraph, collabClusters, companyTopics, namedEdges, shownLinks, type GraphCompany } from '@/lib/knowledge-graph';
 
 let n = 0;
 const item = (field: string, value: string, kind = 'fact', confirmed_by_user = false) => ({ id: `i${n++}`, field, value, kind, confirmed_by_user });
@@ -10,6 +10,24 @@ const affarsverken = co('a', 'Affärsverken', [item('what_it_does', "Karlskrona'
 const nkt = co('k', 'NKT', [item('what_it_does', 'Designs and installs high-voltage cables for power transmission.')]);
 const consultant1 = co('c1', 'Nicon', [item('application_areas', 'Consulting.')]);
 const consultant2 = co('c2', 'Atea', [item('application_areas', 'Consulting.')]);
+
+describe('collaboration clusters', () => {
+  const m = (id: string) => ({ id, name: id.toUpperCase() });
+  const pair = (a: string, b: string, score: number, basis = ['Energy & power grids']) => ({ a: m(a), b: m(b), basis, score, named: [] as string[] });
+  it('keeps clusters small instead of chaining everyone together', () => {
+    const chain = 'abcdefghij'.split('');
+    const pairs = chain.slice(1).map((x, i) => pair(chain[i]!, x, 5));
+    const cs = collabClusters(pairs, 5, 3);
+    expect(cs.every((c) => c.names.length <= 5)).toBe(true);
+    expect(cs.length).toBeGreaterThan(1);
+  });
+  it('ignores weak links and lists the shared topics', () => {
+    const cs = collabClusters([pair('a', 'b', 6, ['Cables', 'Energy & power grids']), pair('c', 'd', 1)]);
+    expect(cs).toHaveLength(1);
+    expect(cs[0]!.names).toEqual(['A', 'B']);
+    expect(cs[0]!.topics).toContain('Cables');
+  });
+});
 
 describe('knowledge graph', () => {
   it('gives each company topics from its facts, with the items behind them', () => {

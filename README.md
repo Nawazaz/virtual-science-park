@@ -20,7 +20,7 @@ Built for the Campor × BUILD Hackathon 2026 (Blue Science Park challenge).
 | Compare `/compare` | Same opportunities, different profiles, different rankings |
 | Connections `/connections` | Possible collaborations between members and the shared basis |
 | Assistant `/assistant` | Chat scoped to one company, guarded by six fixed reply classes |
-| For staff `/staff` | Shared interests across members, deadlines, source health |
+| Park insights `/staff` (staff only) | Shared interests across members, deadlines, collaboration clusters, testbeds, source health |
 | Trust & quality `/trust` | Quality checks, the 12 boundary tests run live, agent run log |
 | How it works `/about` | Agent roles, sources, matching formula, boundaries |
 
