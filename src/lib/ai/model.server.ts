@@ -31,22 +31,68 @@ export const localModelName = (tier: Tier = 'senior') =>
 
 /**
  * One switch for every agent's model.
+ * - GROQ_API_KEY set  → Groq's cloud API (local branch; GROQ_MODEL, default openai/gpt-oss-120b).
  * - OLLAMA_MODEL set  → a local model served by Ollama on this computer (local branch).
  * - otherwise         → Lovable's AI gateway (needs LOVABLE_API_KEY, only inside Lovable).
  */
 export type AgentModel = {
   model: LanguageModel;
-  /** Hosted-gateway reasoning settings; empty for the local model. */
-  providerOptions: typeof reasoningOptions | Record<string, never>;
+  /** Provider-specific settings (hosted reasoning options, Groq reasoning effort). */
+  providerOptions: typeof reasoningOptions | Record<string, Record<string, string>>;
   /** Set when the provider answered with an error; agents turn it into a readable message. */
   state: { failure?: GatewayFailure; waitedMs?: number };
   runId: () => string | undefined;
+  /**
+   * Small budget (Ollama's small model, Groq's free plan of 8,000 tokens a minute): agents send
+   * shorter page text, rank opportunities in batches and use temperature 0 for the Guard.
+   */
   local: boolean;
   /** The model that answers, e.g. "qwen2.5:3b", for the run log. */
   name: string;
 };
 
-export const isLocalAi = () => !!process.env['OLLAMA_MODEL'];
+export const aiProvider = (): 'groq' | 'ollama' | 'lovable' =>
+  process.env['GROQ_API_KEY'] ? 'groq' : process.env['OLLAMA_MODEL'] ? 'ollama' : 'lovable';
+/** Ollama on this computer: the dispatcher, reply caps and junior model apply. */
+export const isLocalAi = () => aiProvider() === 'ollama';
+/** Lovable's paid gateway: only it uses the AI pause flag (and needs the admin key for it). */
+export const usesLovableGateway = () => aiProvider() === 'lovable';
+
+/**
+ * Groq calls with readable errors. On "too many requests" (free plan: 8,000 tokens a minute) it waits
+ * as long as Groq asks (max 30 s) and tries again, up to 3 times, instead of failing the agent.
+ */
+function groqFetch(state: { failure?: GatewayFailure }): typeof fetch {
+  return async (input, init) => {
+    for (let attempt = 0; ; attempt++) {
+      let res: Response;
+      try {
+        res = await fetch(input, init);
+      } catch (e) {
+        if (init?.signal?.aborted) throw e;
+        state.failure = { status: 503, message: 'Cannot reach Groq. Check the internet connection.' };
+        throw new Error(state.failure.message);
+      }
+      if (res.status === 429 && attempt < 3) {
+        const wait = Math.min(30, Number(res.headers.get('retry-after')) || 5);
+        await res.text().catch(() => '');
+        await new Promise((r) => setTimeout(r, wait * 1000));
+        continue;
+      }
+      if (res.ok) return res;
+      const text = await res.text().catch(() => '');
+      let detail: string | undefined;
+      try { detail = (JSON.parse(text) as { error?: { message?: string } }).error?.message; } catch { detail = undefined; }
+      state.failure = {
+        status: 500,
+        message: res.status === 401 ? 'Groq rejected the API key (GROQ_API_KEY in .env.local).'
+          : res.status === 429 ? 'Groq rate limit reached (free plan). Try again in a minute.'
+          : `Groq error: ${detail ?? `status ${res.status}`}`,
+      };
+      return new Response(text, { status: res.status, statusText: res.statusText, headers: res.headers });
+    }
+  };
+}
 
 /** How much text of each page a small local model gets (the evidence check still uses the full page). */
 export const localPageChars = () => Number(process.env['LOCAL_PAGE_CHARS'] ?? 6000);
@@ -75,6 +121,20 @@ function withReplyCap(init: RequestInit | undefined, lane: Lane): RequestInit | 
  * `tier` picks the senior or junior local model (option C); the hosted gateway has one model.
  */
 export function agentModel(runId?: string, lane: Lane = 'background', tier: Tier = 'senior'): AgentModel {
+  if (aiProvider() === 'groq') {
+    const name = process.env['GROQ_MODEL'] || 'openai/gpt-oss-120b';
+    const state: { failure?: GatewayFailure; waitedMs?: number } = {};
+    const provider = createOpenAICompatible({
+      name: 'groq',
+      baseURL: 'https://api.groq.com/openai/v1',
+      apiKey: process.env['GROQ_API_KEY']!,
+      supportsStructuredOutputs: true,
+      fetch: groqFetch(state),
+    });
+    // gpt-oss models think before answering; "low" keeps that short, so replies are fast and use few tokens.
+    const providerOptions = name.startsWith('openai/gpt-oss') ? { groq: { reasoningEffort: 'low' } } : {};
+    return { model: provider.chatModel(name), providerOptions, state, runId: () => undefined, local: true, name };
+  }
   const ollamaModel = isLocalAi() ? localModelName(tier) : '';
   if (ollamaModel) {
     const baseURL = process.env['OLLAMA_BASE_URL'] ?? 'http://localhost:11434/v1';
