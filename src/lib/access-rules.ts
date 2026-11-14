@@ -37,3 +37,10 @@ export function runVisible(viewer: Viewer, run: { agent: string; company_id: str
 }
 
 export const notAllowedMessage = 'Sign in as this company to do that (top bar).';
+
+/** Park-wide jobs and member admin (nightly run, adding companies, testbeds): Blue Science Park staff only. */
+export const isStaff = (viewer: Viewer) => viewer.kind === 'staff';
+/** Shared work that spends time or AI but touches no company's private data (refresh sources, boundary tests): any signed-in account, not visitors. */
+export const isSignedIn = (viewer: Viewer) => viewer.kind !== 'guest';
+export const staffOnlyMessage = 'Only Blue Science Park staff can do that. Sign in as staff.';
+export const signInMessage = 'Sign in to do that.';

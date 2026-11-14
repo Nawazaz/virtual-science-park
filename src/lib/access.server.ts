@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { deleteCookie, getCookie, setCookie } from '@tanstack/react-start/server';
-import { canActAs, canSeeProfile, notAllowedMessage, type Viewer } from './access-rules';
+import { canActAs, canSeeProfile, isSignedIn, isStaff, notAllowedMessage, signInMessage, staffOnlyMessage, type Viewer } from './access-rules';
 import { SignInThrottle } from './demo-accounts';
 import { decodeViewer, encodeViewer } from './session-token.server';
 
@@ -62,4 +62,14 @@ export function requireProfileAccess(companyId: string) {
 /** Throws unless the viewer is signed in as this company. */
 export function requireOwner(companyId: string) {
   if (!canActAs(currentViewer(), companyId)) throw new Error(notAllowedMessage);
+}
+
+/** Throws unless the viewer is signed in as Blue Science Park staff. */
+export function requireStaff() {
+  if (!isStaff(currentViewer())) throw new Error(staffOnlyMessage);
+}
+
+/** Throws for visitors who are not signed in. */
+export function requireSignedIn() {
+  if (!isSignedIn(currentViewer())) throw new Error(signInMessage);
 }

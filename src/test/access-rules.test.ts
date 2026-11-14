@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { accessTo, canActAs, canSeeProfile, runVisible, visibleCompany, type Viewer } from '@/lib/access-rules';
+import { accessTo, canActAs, canSeeProfile, isSignedIn, isStaff, runVisible, visibleCompany, type Viewer } from '@/lib/access-rules';
 import { decodeViewer, encodeViewer } from '@/lib/session-token.server';
 
 const A = '11111111-1111-4111-8111-111111111111';
@@ -75,5 +75,24 @@ describe('Session token', () => {
     expect(decodeViewer('staff.', secret)).toEqual(guest);
     expect(decodeViewer(undefined, secret)).toEqual(guest);
     expect(decodeViewer('company:not-a-uuid.x', secret)).toEqual(guest);
+  });
+});
+
+describe('Who may start jobs', () => {
+  const guest: Viewer = { kind: 'guest' };
+  const staff: Viewer = { kind: 'staff' };
+  const company: Viewer = { kind: 'company', companyId: '11111111-1111-4111-8111-111111111111' };
+  const other = '22222222-2222-4222-8222-222222222222';
+  it('only staff may run park-wide jobs (nightly run, add companies, testbeds)', () => {
+    expect([guest, company, staff].map(isStaff)).toEqual([false, false, true]);
+  });
+  it('visitors may not refresh sources or run boundary tests; any signed-in account may', () => {
+    expect([guest, company, staff].map(isSignedIn)).toEqual([false, true, true]);
+  });
+  it('a company may build or match only itself; staff may do any company', () => {
+    expect(canSeeProfile(company, other)).toBe(false);
+    expect(canSeeProfile(company, '11111111-1111-4111-8111-111111111111')).toBe(true);
+    expect(canSeeProfile(staff, other)).toBe(true);
+    expect(canSeeProfile(guest, other)).toBe(false);
   });
 });

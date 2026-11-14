@@ -49,6 +49,7 @@ export const getDashboard=createServerFn({method:'GET'}).inputValidator(id).hand
  return {company:{id:c.data.id,name:c.data.name,website_url:c.data.website_url},summary,completeness:completeness(items),updated,itemCount:items.length,top:(m.data??[]).filter(x=>x.opportunity),counts,changes:ch.data??[],newOpps:opps.slice(0,6),locked:!seePrivate};
 });
 export const importMembers=createServerFn({method:'POST'}).inputValidator(z.object({text:z.string().max(20000)})).handler(async({data})=>{
+ const {requireStaff}=await import('./access.server');requireStaff();
  const rows=parseMemberUrls(data.text);if(!rows.length)throw new Error('No valid member page addresses found.');
  const {publicDb}=await import('./db.server');const db=publicDb();const {data:existing}=await db.from('companies').select('name,member_page_url');
  const fresh=rows.filter(r=>!(existing??[]).some(e=>e.member_page_url===r.member_page_url||e.name.toLowerCase()===r.name.toLowerCase()));
@@ -60,7 +61,7 @@ export const askAssistant=createServerFn({method:'POST'}).inputValidator(z.objec
  const {requireOwner}=await import('./access.server');requireOwner(data.company_id);
  const {answerQuestion}=await import('./assistant.server');return answerQuestion(data.company_id,data.question);
 });
-export const runBoundaryTestsFn=createServerFn({method:'POST'}).handler(async()=>{const {runBoundaryTests}=await import('./assistant.server');const {boundaryTests}=await import('./park-rules');return runBoundaryTests(boundaryTests);});
+export const runBoundaryTestsFn=createServerFn({method:'POST'}).handler(async()=>{const {requireSignedIn}=await import('./access.server');requireSignedIn();const {runBoundaryTests}=await import('./assistant.server');const {boundaryTests}=await import('./park-rules');return runBoundaryTests(boundaryTests);});
 export const getStaffOverview=createServerFn({method:'GET'}).handler(async()=>{
  if((await viewer()).kind!=='staff')return null;
  const {publicDb}=await import('./db.server');const db=publicDb();
