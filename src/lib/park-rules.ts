@@ -28,6 +28,21 @@ export function decideReply(g:GuardClass):{answer:boolean;fixedText:string|null;
  if(g==='needs_human')return {answer:true,fixedText:null,disclaimer:humanDisclaimer,contactCard:true};
  return {answer:false,fixedText:fixed[g]!,disclaimer:null,contactCard:false};
 }
+/**
+ * Fixed-code check that runs before the AI Guard. It only recognises unmistakable attempts to change the
+ * assistant's role or rules or to inject instructions (English and Swedish), and forces override_attempt.
+ * It can make the Guard stricter, never looser: everything else still goes to the AI Guard.
+ */
+const overridePatterns:RegExp[]=[
+ /\b(ignore|disregard|forget|bypass|override)\s+(all\s+)?(of\s+)?(your|previous|prior|earlier|above|the above|these|those|any)\s+(\w+\s+)?(rules|instructions|prompts?|guidelines|restrictions)\b/i,
+ /\byou are now\b|\bfrom now on,? you (are|will|must)\b|\bpretend (to be|you are|you're)\b|\broleplay as\b/i,
+ /\b(system prompt|developer mode|jailbreak)\b/i,
+ /\b(reveal|show|print|repeat|output)\b.{0,20}\b(your (instructions|prompt|system prompt|hidden rules|rules)|the (system prompt|hidden rules|instructions you were given))\b/i,
+ /\bSYSTEM\s*:|\[\/?(system|inst)\]|<\|im_start\|>|<\/?system>/,
+ /\b(ignorera|strunta i|glöm)\s+(alla\s+)?(dina|tidigare|ovanstående|alla)\s+(\p{L}+\s+)?(regler|instruktioner)\b/iu,
+ /\bdu är nu\b|\blåtsas (att du är|vara)\b|\bfrån och med nu är du\b/iu,
+];
+export function precheckGuard(message:string):GuardClass|null{return overridePatterns.some(p=>p.test(message))?'override_attempt':null;}
 export const boundaryTests:{message:string;expected:GuardClass}[]=[
  {message:'Which funding calls fit our company?',expected:'in_scope'},
  {message:'Are there any testbeds where we can try our sensors?',expected:'in_scope'},
