@@ -1,4 +1,4 @@
-/* Virtual Science Park — Baltic editorial design system. Keep @imports at the top. */
+/* Virtual Science Park — a Blue Science Park service; theme follows bluesciencepark.se. Keep @imports at the top. */
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -44,34 +44,38 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Fraunces", Georgia, serif;
+  /* Blue Science Park's site uses Roboto (its display face, Neue Haas Grotesk, is a paid Adobe font). */
+  --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Roboto", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Blue Science Park palette, from bluesciencepark.se: navy #1B1C38, blue #0068B3, bright blue #00A3E2,
+   light blues #83D0F5 / #A2EAF5, light grey #F4F4F4. */
 :root {
-  --radius: 14px;
-  --navy: #0B1F33;
-  --baltic: #1F5F8B;
-  --paper: #F7F4EE;
-  --sand: #E9DFCC;
+  --radius: 12px;
+  --navy: #1B1C38;
+  --baltic: #0068B3;
+  --bsp-bright: #00A3E2;
+  --paper: #F4F4F4;
+  --sand: #E3EBF2;
   --background: var(--paper);
   --foreground: var(--navy);
-  --card: #FFFDF9;
+  --card: #FFFFFF;
   --card-foreground: var(--navy);
   --popover: var(--card);
   --popover-foreground: var(--navy);
   --primary: var(--baltic);
   --primary-foreground: #FFFFFF;
-  --secondary: #EFE8DA;
+  --secondary: #E6F4FC;
   --secondary-foreground: var(--navy);
-  --muted: #EFEAE0;
-  --muted-foreground: #4F5B68;
-  --accent: #E3ECF3;
+  --muted: #ECEFF3;
+  --muted-foreground: #4B4E6A;
+  --accent: #E1F2FC;
   --accent-foreground: var(--navy);
   --destructive: #B42318;
   --destructive-foreground: #FFFFFF;
-  --border: #DDD4C3;
-  --input: #D3C9B6;
+  --border: #DCE2EA;
+  --input: #CBD3DE;
   --ring: var(--baltic);
   /* Evidence colours; *-ink variants keep AA contrast for text on light backgrounds */
   --fact: #5FB3A6; --fact-ink: #23675D;
@@ -80,43 +84,43 @@
   --confirmed: #1E7A55; --confirmed-ink: #1E7A55;
   --simulated: #E8590C; --simulated-ink: #A63D05;
   --sidebar: var(--navy);
-  --sidebar-foreground: #E8EEF3;
-  --sidebar-primary: #8CC3E8;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #83D0F5;
   --sidebar-primary-foreground: var(--navy);
-  --sidebar-accent: #16324D;
+  --sidebar-accent: #303158;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #1D3955;
-  --sidebar-ring: #8CC3E8;
+  --sidebar-border: #2A2B4D;
+  --sidebar-ring: #00A3E2;
   --shadow-soft: 0 1px 2px color-mix(in oklab, var(--navy) 6%, transparent), 0 8px 24px -12px color-mix(in oklab, var(--navy) 18%, transparent);
 }
 
 .dark {
-  --background: #0A1826;
-  --foreground: #ECE7DD;
-  --card: #10243A;
-  --card-foreground: #ECE7DD;
-  --popover: #10243A;
-  --popover-foreground: #ECE7DD;
-  --primary: #6FB1DE;
-  --primary-foreground: #0B1F33;
-  --secondary: #1A3048;
-  --secondary-foreground: #ECE7DD;
-  --muted: #142A41;
-  --muted-foreground: #A9B6C3;
-  --accent: #1A3654;
-  --accent-foreground: #ECE7DD;
-  --border: #23405E;
-  --input: #2B4A6A;
-  --ring: #6FB1DE;
-  --sand: #3A3122;
+  --background: #12132A;
+  --foreground: #F4F4F4;
+  --card: #1B1C38;
+  --card-foreground: #F4F4F4;
+  --popover: #1B1C38;
+  --popover-foreground: #F4F4F4;
+  --primary: #00A3E2;
+  --primary-foreground: #12132A;
+  --secondary: #23254A;
+  --secondary-foreground: #F4F4F4;
+  --muted: #202245;
+  --muted-foreground: #B4B8D4;
+  --accent: #213A63;
+  --accent-foreground: #F4F4F4;
+  --border: #303158;
+  --input: #3A3C66;
+  --ring: #00A3E2;
+  --sand: #2A2B4D;
   --fact-ink: #7FCBBF;
   --inferred-ink: #F2B441;
   --missing-ink: #B3BCC6;
   --confirmed-ink: #5CC495;
   --simulated-ink: #FF8A4C;
-  --sidebar: #07121D;
-  --sidebar-accent: #13283E;
-  --sidebar-border: #17304A;
+  --sidebar: #0D0E22;
+  --sidebar-accent: #23254A;
+  --sidebar-border: #23254A;
 }
 
 @layer base {
@@ -139,4 +143,24 @@
 @utility ink-confirmed { color: var(--confirmed-ink); }
 @utility ink-simulated { color: var(--simulated-ink); }
 @keyframes vsp-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+/* Sign-in ecosystem illustration. Only moves when the person hasn't asked for reduced motion. */
+@keyframes vsp-spin { to { transform: rotate(360deg); } }
+@keyframes vsp-pulse { 0% { transform: scale(0.55); opacity: 0.55; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes vsp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes vsp-flow { to { stroke-dashoffset: -28; } }
+@keyframes vsp-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.vsp-orbit { transform-box: view-box; transform-origin: 200px 200px; }
+.vsp-chip { opacity: 0; animation: vsp-rise 600ms ease-out forwards; }
+@media (prefers-reduced-motion: no-preference) {
+  .vsp-spin-slow { animation: vsp-spin 90s linear infinite; }
+  .vsp-spin-mid { animation: vsp-spin 60s linear infinite reverse; }
+  .vsp-spin-fast { animation: vsp-spin 40s linear infinite; }
+  .vsp-pulse { animation: vsp-pulse 4s ease-out infinite; }
+  .vsp-flow { stroke-dasharray: 4 10; animation: vsp-flow 1.6s linear infinite; }
+  .vsp-float { animation: vsp-float 5s ease-in-out infinite; }
+}
+@media (prefers-reduced-motion: reduce) { .vsp-chip { opacity: 1; animation: none; } }
+/* Scrolling list panels (ScrollPanel): thin scrollbar in the theme's colours, visible focus for keyboard users. */
+.scroll-panel { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--primary) 35%, transparent) transparent; }
+.scroll-panel:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 12px; }
 * { transition-duration: 150ms; }

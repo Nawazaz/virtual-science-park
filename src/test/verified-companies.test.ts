@@ -23,14 +23,16 @@ const items = [...sql.matchAll(new RegExp(`^ \\(${str},${str},${str},${str},${op
 }));
 
 describe('verified company data', () => {
-  it('has the 5 companies and no placeholder', () => {
-    expect(companies.map((c) => c.name)).toEqual(['Njord X', 'WIP', 'Kingspan BAGA', 'Ocean Harvesting', 'Techinova']);
+  it('has the 45 member companies and no placeholder', () => {
+    expect(companies).toHaveLength(45);
+    expect(companies.slice(0, 5).map((c) => c.name)).toEqual(['Njord X', 'WIP', 'Kingspan BAGA', 'Ocean Harvesting', 'Techinova']);
+    expect(new Set(companies.map((c) => c.member)).size).toBe(45);
     expect(companies.every((c) => /^https:\/\//.test(c.website) && c.member.startsWith('https://www.bluesciencepark.se/medlem/'))).toBe(true);
     expect(sql).toMatch(/DELETE FROM public\.companies WHERE name = 'Example Company'/);
   });
 
   it('gives every company all 8 profile fields', () => {
-    expect(items.length).toBeGreaterThanOrEqual(40);
+    expect(items.length).toBeGreaterThanOrEqual(45 * 8);
     for (const c of companies) {
       const have = new Set(items.filter((i) => i.member === c.member).map((i) => i.field));
       expect([...have].sort(), c.name).toEqual([...fields].sort());
@@ -60,6 +62,7 @@ describe('verified company data', () => {
   });
 
   it('keeps demo sign-in emails readable', () => {
-    expect(companies.map((c) => emailFor(c.name))).toEqual(['njord-x@demo.vsp', 'wip@demo.vsp', 'kingspan-baga@demo.vsp', 'ocean-harvesting@demo.vsp', 'techinova@demo.vsp']);
+    expect(companies.slice(0, 5).map((c) => emailFor(c.name))).toEqual(['njord-x@demo.vsp', 'wip@demo.vsp', 'kingspan-baga@demo.vsp', 'ocean-harvesting@demo.vsp', 'techinova@demo.vsp']);
+    expect(new Set(companies.map((c) => emailFor(c.name))).size).toBe(45); // every company gets its own login
   });
 });

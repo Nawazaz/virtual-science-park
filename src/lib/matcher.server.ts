@@ -4,14 +4,14 @@ import { publicDb } from './db.server';
 import { scoreBreakdown,sanitizeWording } from './opportunity-rules';
 import { logRun } from './agent-runs.server';
 import { getLovableAiGatewayRunId } from './ai/run-id.ts';
-import { agentModel,isLocalAi } from './ai/model.server';
+import { agentModel,usesLovableGateway } from './ai/model.server';
 const schema=z.object({matches:z.array(z.object({opportunity_id:z.string(),score:z.number(),reason:z.string(),check_first:z.string(),next_step:z.string(),matched_profile_item_ids:z.array(z.string())}))});
 export async function runMatcher(companyId:string,request:Request,emit:(e:object)=>void){
  const started=Date.now();const db=publicDb();
  const {data:company,error}=await db.from('companies').select('id,name,profile_items(id,field,value,kind,confirmed_by_user),company_priorities(priority)').eq('id',companyId).single();if(error||!company)throw new Error('Company not found.');
  const items=company.profile_items.filter(i=>i.kind!=='missing');if(!items.length)throw new Error('Build the company profile before matching.');
  // The pause flag guards Lovable's paid AI gateway; a local model needs no admin key.
- const supabaseAdmin=isLocalAi()?null:(await import('@/integrations/supabase/client.server')).supabaseAdmin;
+ const supabaseAdmin=!usesLovableGateway()?null:(await import('@/integrations/supabase/client.server')).supabaseAdmin;
  if(supabaseAdmin){const {data:access}=await supabaseAdmin.from('ai_access_state').select('id,blocked,reason').in('id',['profile-builder','matcher']);const blocked=access?.find(a=>a.blocked);if(blocked)throw new Error(blocked.reason??'AI access is paused.');}
  const {data:all,error:oErr}=await db.from('opportunities').select('id,type,title,summary,simulated,source_name');if(oErr)throw new Error(oErr.message);
  const events=(all??[]).filter(o=>o.type==='event').slice(0,12);const testing=(all??[]).filter(o=>o.type==='testing').slice(0,8);const news=(all??[]).filter(o=>o.type==='news').slice(0,10);const opps=[...events,...testing,...news,...(all??[]).filter(o=>o.type==='funding')].slice(0,48);

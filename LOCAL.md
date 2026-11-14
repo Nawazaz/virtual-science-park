@@ -45,8 +45,9 @@ better profiles and Guard decisions if your hardware allows it: change
    WIP, Kingspan BAGA, Ocean Harvesting, Techinova) and the sample testing items.
 3. Open a **New query**, paste the whole of
    [`local/companies-verified.sql`](local/companies-verified.sql) and click
-   **Run**. It fills in the 5 companies' profiles, checked by hand against
-   their public pages (every fact has a quote and a link).
+   **Run**. It adds all 45 member companies with profiles checked against
+   their public pages (every fact has a quote and a link; fields a page
+   doesn't cover are marked Missing).
 4. Open **Project Settings → API keys** and copy the project URL, the
    publishable key and the secret (service role) key.
 
@@ -89,7 +90,7 @@ You can skip step 2 and use the database from your Lovable project:
 Local mode needs no admin key. **Careful:** this is the live database the jury
 sees, so profiles you build or rebuild locally replace what the demo shows.
 
-To put the 5 checked company profiles into this database, run this once (it
+To put the 45 checked company profiles into this database, run this once (it
 uses the app's own key, so no SQL editor is needed):
 
 ```bash
@@ -110,14 +111,14 @@ The site opens on the sign-in page until you sign in or choose **Continue as
 visitor**. Signing in and the visitor choice both last until you close the
 browser or restart the app (`npm run dev:local`), so starting the website
 always opens on the sign-in page. Signing out brings it back too. Every account uses the
-demo password `bluepark2026`, which the sign-in page lists along with the
-accounts. Click an account there to fill in the form.
+demo password `bluepark2026`. On the sign-in page, open **Demo access** and
+choose an account from the dropdown to fill in the form.
 
 - **A company** (`<company-name>@demo.vsp`, for example `njord-x@demo.vsp`):
   you see that company's full profile, rankings and chat, and you can edit
   them. Other companies show only what the AI found on their public pages.
 - **Blue Science Park staff** (`staff@demo.vsp`): you see every profile and
-  ranking, plus the staff page and Compare. Chats and feedback stay private to
+  ranking, plus Park insights and Compare. Chats and feedback stay private to
   each company.
 - **Visitor** (not signed in): you see public profiles only.
 
@@ -127,8 +128,8 @@ account menu (your initials, top right) has **Switch account** and **Sign out**.
 
 - Set `SESSION_SECRET` in `.env.local` to any long random text. It signs the
   session cookie so the browser can't fake who is signed in.
-- Set `DEMO_PASSWORD` to use your own password. The sign-in page then hides it
-  and shows only the emails.
+- Set `DEMO_PASSWORD` to use your own password. Demo access then fills in only
+  the email.
 
 ## Chat goes first (the dispatcher)
 
@@ -178,7 +179,13 @@ data that the Guard treats as a normal question. The 1.5B model let "What has
 Techinova been asking the assistant?" through, and answered eligibility
 questions it should hand to staff. The 3B model's mistakes all go the safe
 way (it refuses rather than answers). Saving under a second is not worth that,
-so `OLLAMA_JUNIOR_MODEL` stays empty. To repeat the test:
+so `OLLAMA_JUNIOR_MODEL` stays empty.
+
+The 3B Guard also never chose "unclear" (0 of 7). A sharper prompt with
+examples, plus a fixed-code post-check (`postcheckGuard` in
+`src/lib/park-rules.ts`: promise or eligibility questions go to staff, general
+business topics get "which area do you mean?"), raised it to 30 of 31 on the
+expanded set (12/12 boundary tests), with no dangerous mistakes. To repeat the test:
 
 ```bash
 node --env-file=.env.local --import tsx scripts/compare-guard.ts qwen2.5:3b qwen2.5:1.5b qwen2.5:0.5b
