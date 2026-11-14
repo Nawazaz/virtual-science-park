@@ -10,11 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ConnectionsRouteImport } from './routes/connections'
-import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as MembersRouteImport } from './routes/members'
 import { Route as OpportunitiesRouteImport } from './routes/opportunities'
 import { Route as SignInRouteImport } from './routes/sign-in'
@@ -32,11 +30,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AssistantRoute = AssistantRouteImport.update({
   id: '/assistant',
   path: '/assistant',
@@ -50,11 +43,6 @@ const CompareRoute = CompareRouteImport.update({
 const ConnectionsRoute = ConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HowItWorksRoute = HowItWorksRouteImport.update({
-  id: '/how-it-works',
-  path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MembersRoute = MembersRouteImport.update({
@@ -116,11 +104,9 @@ const ApiPublicCronNightlyRoute = ApiPublicCronNightlyRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/assistant': typeof AssistantRoute
   '/compare': typeof CompareRoute
   '/connections': typeof ConnectionsRoute
-  '/how-it-works': typeof HowItWorksRoute
   '/members': typeof MembersRoute
   '/opportunities': typeof OpportunitiesRoute
   '/sign-in': typeof SignInRoute
@@ -135,11 +121,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/assistant': typeof AssistantRoute
   '/compare': typeof CompareRoute
   '/connections': typeof ConnectionsRoute
-  '/how-it-works': typeof HowItWorksRoute
   '/members': typeof MembersRoute
   '/opportunities': typeof OpportunitiesRoute
   '/sign-in': typeof SignInRoute
@@ -155,11 +139,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/assistant': typeof AssistantRoute
   '/compare': typeof CompareRoute
   '/connections': typeof ConnectionsRoute
-  '/how-it-works': typeof HowItWorksRoute
   '/members': typeof MembersRoute
   '/opportunities': typeof OpportunitiesRoute
   '/sign-in': typeof SignInRoute
@@ -176,11 +158,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/about'
     | '/assistant'
     | '/compare'
     | '/connections'
-    | '/how-it-works'
     | '/members'
     | '/opportunities'
     | '/sign-in'
@@ -195,11 +175,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/about'
     | '/assistant'
     | '/compare'
     | '/connections'
-    | '/how-it-works'
     | '/members'
     | '/opportunities'
     | '/sign-in'
@@ -214,11 +192,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/about'
     | '/assistant'
     | '/compare'
     | '/connections'
-    | '/how-it-works'
     | '/members'
     | '/opportunities'
     | '/sign-in'
@@ -234,11 +210,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
   AssistantRoute: typeof AssistantRoute
   CompareRoute: typeof CompareRoute
   ConnectionsRoute: typeof ConnectionsRoute
-  HowItWorksRoute: typeof HowItWorksRoute
   MembersRoute: typeof MembersRoute
   OpportunitiesRoute: typeof OpportunitiesRoute
   SignInRoute: typeof SignInRoute
@@ -261,13 +235,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/assistant': {
       id: '/assistant'
       path: '/assistant'
@@ -287,13 +254,6 @@ declare module '@tanstack/react-router' {
       path: '/connections'
       fullPath: '/connections'
       preLoaderRoute: typeof ConnectionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/how-it-works': {
-      id: '/how-it-works'
-      path: '/how-it-works'
-      fullPath: '/how-it-works'
-      preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/members': {
@@ -378,11 +338,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
   AssistantRoute: AssistantRoute,
   CompareRoute: CompareRoute,
   ConnectionsRoute: ConnectionsRoute,
-  HowItWorksRoute: HowItWorksRoute,
   MembersRoute: MembersRoute,
   OpportunitiesRoute: OpportunitiesRoute,
   SignInRoute: SignInRoute,

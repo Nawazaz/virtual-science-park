@@ -111,8 +111,8 @@ The site opens on the sign-in page until you sign in or choose **Continue as
 visitor**. Signing in and the visitor choice both last until you close the
 browser or restart the app (`npm run dev:local`), so starting the website
 always opens on the sign-in page. Signing out brings it back too. Every account uses the
-demo password `bluepark2026`, which the sign-in page lists along with the
-accounts. Click an account there to fill in the form.
+demo password `bluepark2026`. On the sign-in page, open **Demo access** and
+choose an account from the dropdown to fill in the form.
 
 - **A company** (`<company-name>@demo.vsp`, for example `njord-x@demo.vsp`):
   you see that company's full profile, rankings and chat, and you can edit
@@ -128,8 +128,8 @@ account menu (your initials, top right) has **Switch account** and **Sign out**.
 
 - Set `SESSION_SECRET` in `.env.local` to any long random text. It signs the
   session cookie so the browser can't fake who is signed in.
-- Set `DEMO_PASSWORD` to use your own password. The sign-in page then hides it
-  and shows only the emails.
+- Set `DEMO_PASSWORD` to use your own password. Demo access then fills in only
+  the email.
 
 ## Chat goes first (the dispatcher)
 

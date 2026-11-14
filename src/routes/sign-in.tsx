@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
-import { ArrowRight, Eye, EyeOff, Loader2, MessagesSquare, ShieldCheck, Sparkles } from 'lucide-react';
-import { BrandLockup, BrandMark } from '@/components/park/brand';
+import { ArrowRight, ChevronDown, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { BrandLockup, BspLogo } from '@/components/park/brand';
+import { EcosystemOrbit, RotatingLine } from '@/components/park/ecosystem-orbit';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -26,10 +28,11 @@ export const Route = createFileRoute('/sign-in')({
   component: SignInPage,
 });
 
-const perks = [
-  { Icon: ShieldCheck, text: 'A profile built from your public pages, with a source for every fact' },
-  { Icon: Sparkles, text: 'Funding, events and testbeds ranked for your company' },
-  { Icon: MessagesSquare, text: 'An assistant that answers only from your own data' },
+const productLines = [
+  'Find funding that fits your company.',
+  'Meet members who share your field.',
+  'Test ideas in real environments.',
+  'Ask questions, get answers with sources.',
 ];
 
 const Avatar = ({ name, className = '' }: { name: string; className?: string }) => (
@@ -52,6 +55,7 @@ function SignInPage() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [demoOpen, setDemoOpen] = useState(false);
   const passwordRef = useRef<HTMLInputElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
 
@@ -87,8 +91,8 @@ function SignInPage() {
     }
   }
 
-  function pickDemo(account: { email: string }) {
-    setEmail(account.email);
+  function pickDemo(accountEmail: string) {
+    setEmail(accountEmail);
     setError(null);
     if (demo?.password) {
       setPassword(demo.password);
@@ -97,32 +101,28 @@ function SignInPage() {
   }
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
-      <aside className="hidden flex-col justify-between bg-sidebar p-10 text-sidebar-foreground lg:flex">
-        <Link to="/" aria-label="Virtual Science Park home"><BrandLockup tone="sidebar" /></Link>
-        <div className="max-w-md">
-          <BrandMark className="mb-8 size-40 drop-shadow-[0_12px_30px_rgba(0,0,0,0.35)] xl:size-48" />
-          <h2 className="font-display text-4xl leading-tight">Your company's window into Blue Science Park.</h2>
-          <ul className="mt-8 space-y-4">
-            {perks.map(({ Icon, text }) => (
-              <li key={text} className="flex items-start gap-3 text-sm text-sidebar-foreground/85">
-                <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-sidebar-accent text-sidebar-primary"><Icon size={15} aria-hidden /></span>
-                {text}
-              </li>
-            ))}
-          </ul>
+    <div className="grid min-h-screen bg-background lg:grid-cols-[1.1fr_1fr]">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 text-sidebar-foreground lg:flex">
+        <Link to="/" aria-label="Virtual Science Park home, a Blue Science Park service" className="relative z-10 w-fit"><BspLogo tone="white" className="h-8" /></Link>
+        <div className="relative z-10 mx-auto w-full max-w-[400px] py-6">
+          <EcosystemOrbit />
         </div>
-        <p className="text-xs text-sidebar-foreground/60">Hackathon prototype for Blue Science Park members, Karlskrona.</p>
+        <div className="relative z-10 max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-sidebar-primary">Virtual Science Park</p>
+          <h2 className="font-display text-2xl font-bold leading-snug xl:text-3xl">Blue Science Park's ecosystem, in one place.</h2>
+          <RotatingLine lines={productLines} className="mt-2 text-sm text-sidebar-foreground/80" />
+          <p className="sr-only">{productLines.join(' ')}</p>
+        </div>
       </aside>
 
       <main className="flex items-center justify-center px-4 py-10 sm:px-8">
-        <div className="w-full max-w-sm">
-          <Link to="/" aria-label="Virtual Science Park home" className="mb-8 block lg:hidden"><BrandLockup /></Link>
-          <h1 className="font-display text-3xl">Sign in</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Use your company account to see your private profile, matches and assistant.</p>
+        <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-3 duration-500">
+          <Link to="/" aria-label="Virtual Science Park home, a Blue Science Park service" className="mb-8 block lg:hidden"><BrandLockup /></Link>
+          <h1 className="font-display text-2xl font-bold">Sign in</h1>
+          <p className="mt-1 text-sm text-muted-foreground">For member companies and park staff.</p>
 
           {signedInAs && (
-            <div className="mt-6 flex items-center gap-3 rounded-[14px] border bg-card p-3 text-sm">
+            <div className="mt-5 flex items-center gap-3 rounded-[12px] border bg-card p-3 text-sm">
               <Avatar name={signedInAs} />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">Signed in as {signedInAs}</p>
@@ -152,37 +152,32 @@ function SignInPage() {
             </Button>
           </form>
 
-          <section aria-labelledby="demo-heading" className="mt-8">
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" />
-              <h2 id="demo-heading" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Demo accounts</h2>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              {!demo ? 'Loading demo accounts…' : demo.password ? <>Pick one to fill in the form. Password for all: <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">{demo.password}</code></> : 'Pick one to fill in the email. Ask the team for the demo password.'}
-            </p>
-            <ul className="mt-3 max-h-64 space-y-1.5 overflow-y-auto">
-              {(demo?.accounts ?? []).map((a) => (
-                <li key={a.email}>
-                  <button type="button" onClick={() => pickDemo(a)} className={`flex w-full items-center gap-3 rounded-[12px] border bg-card px-3 py-2 text-left text-sm hover:border-primary ${email === a.email ? 'border-primary' : ''}`}>
-                    <Avatar name={a.name} className="size-8" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{a.name}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{a.email}</span>
-                    </span>
-                    <span className="shrink-0 text-[11px] text-muted-foreground">{a.role}</span>
-                  </button>
-                </li>
-              ))}            </ul>
-          </section>
-
-          {!signedInAs && (
-            <button type="button" onClick={onVisitor} className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-              Continue as visitor <ArrowRight size={14} aria-hidden />
+          <div className="mt-5 flex items-center justify-between gap-3 text-sm">
+            {!signedInAs ? (
+              <button type="button" onClick={onVisitor} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                Continue as visitor <ArrowRight size={14} aria-hidden />
+              </button>
+            ) : <span />}
+            <button type="button" onClick={() => setDemoOpen(!demoOpen)} aria-expanded={demoOpen} aria-controls="demo-access" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              Demo access <ChevronDown size={14} aria-hidden className={`transition-transform ${demoOpen ? 'rotate-180' : ''}`} />
             </button>
+          </div>
+          {demoOpen && (
+            <div id="demo-access" className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+              <Select value={email && demo?.accounts.some((a) => a.email === email) ? email : undefined} onValueChange={pickDemo}>
+                <SelectTrigger aria-label="Demo account" className="w-full bg-card text-sm"><SelectValue placeholder={demo ? 'Choose a demo account' : 'Loading…'} /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectGroup><SelectLabel>Park staff</SelectLabel>
+                    {(demo?.accounts ?? []).filter((a) => a.role === 'Park staff').map((a) => <SelectItem key={a.email} value={a.email}>{a.name}</SelectItem>)}
+                  </SelectGroup>
+                  <SelectGroup><SelectLabel>Member companies</SelectLabel>
+                    {(demo?.accounts ?? []).filter((a) => a.role !== 'Park staff').map((a) => <SelectItem key={a.email} value={a.email}>{a.name}</SelectItem>)}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">Fills in a prototype login for the demo.</p>
+            </div>
           )}
-          {!signedInAs && <p className="mt-1 text-xs text-muted-foreground">Visitors see public profiles only.</p>}
-          <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground">Prototype accounts for the hackathon. The server checks the password and every request; real member accounts would use Supabase Auth.</p>
         </div>
       </main>
     </div>
