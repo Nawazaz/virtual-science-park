@@ -160,4 +160,7 @@
   .vsp-float { animation: vsp-float 5s ease-in-out infinite; }
 }
 @media (prefers-reduced-motion: reduce) { .vsp-chip { opacity: 1; animation: none; } }
+/* Scrolling list panels (ScrollPanel): thin scrollbar in the theme's colours, visible focus for keyboard users. */
+.scroll-panel { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--primary) 35%, transparent) transparent; }
+.scroll-panel:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 12px; }
 * { transition-duration: 150ms; }

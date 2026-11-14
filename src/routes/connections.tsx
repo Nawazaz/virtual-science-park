@@ -10,6 +10,7 @@ import { ParkShell, PageHeader, EmptyState } from '@/components/park-shell';
 import { allConnectionsQuery, connectionsQuery } from '@/lib/company-queries';
 import { useViewingAs } from '@/hooks/use-viewing-as';
 import { SourceChip, EvidenceBadge, kindOf } from '@/components/park/evidence';
+import { ScrollPanel } from '@/components/park/scroll-panel';
 export const Route=createFileRoute('/connections')({
  head:()=>({meta:[{title:'Connections | Virtual Science Park'},{name:'description',content:'Possible connections between member companies based on shared public topics.'},{property:'og:title',content:'Connections | Virtual Science Park'},{property:'og:description',content:'Which members share technologies, markets or application areas.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),
  component:Connections,
@@ -59,10 +60,10 @@ function Connections(){const {selected,companyId}=useViewingAs();const {data:min
  return <ParkShell><PageHeader eyebrow="Network" title="Possible connections">{note}</PageHeader>
   {full&&!nativeFull?createPortal(globePanel,document.body):globePanel}
   <section className="surface mb-8 p-4"><h2 className="mb-3 font-display text-xl">Topics across the park</h2><TopicMap topics={all?.topics??[]} selected={focus?.kind==='topic'?focus.id:null} onSelect={id=>setFocus(id?{kind:'topic',id}:null)}/></section>
-  <section><h2 className="mb-4 font-display text-2xl">For {selected?.name??'…'}</h2>{mine.length===0?<EmptyState icon={<Network/>} title="No overlaps yet">Connections appear when built profiles share technologies, application areas or markets.</EmptyState>:
-   <div className="space-y-4">{mine.map(c=><article key={c.id} className="surface p-5"><div className="flex flex-wrap items-center justify-between gap-2"><Link to="/companies/$companyId" params={{companyId:c.id}} search={true} className="font-display text-xl hover:text-primary">{c.name}</Link><SourceChip url={c.website_url}/></div>
+  <section><h2 className="mb-4 flex items-baseline gap-2 font-display text-2xl">For {selected?.name??'…'}{mine.length>0&&<span className="text-sm font-normal text-muted-foreground">{mine.length} possible connections</span>}</h2>{mine.length===0?<EmptyState icon={<Network/>} title="No overlaps yet">Connections appear when built profiles share technologies, application areas or markets.</EmptyState>:
+   <ScrollPanel label={`Possible connections for ${selected?.name??'this company'}`} fit={14} min={24}><div className="space-y-4">{mine.map(c=><article key={c.id} className="surface p-5"><div className="flex flex-wrap items-center justify-between gap-2"><Link to="/companies/$companyId" params={{companyId:c.id}} search={true} className="font-display text-xl hover:text-primary">{c.name}</Link><SourceChip url={c.website_url}/></div>
     <p className="mt-1 text-sm">Shared topics: {c.basis.map(b=><span key={b} className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[11px]">{b}</span>)}</p>
     {c.named.length>0&&<p className="mt-2 text-sm"><span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-primary">Named in a profile</span> “{c.named[0]}”</p>}
     <div className="mt-4 grid gap-4 md:grid-cols-2"><div><p className="eyebrow mb-2">{selected?.name}</p><Items items={c.mine}/></div><div><p className="eyebrow mb-2">{c.name}</p><Items items={c.theirs}/></div></div>
-    <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">{note}</p></article>)}</div>}</section>
+    <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">{note}</p></article>)}</div></ScrollPanel>}</section>
  </ParkShell>;}
