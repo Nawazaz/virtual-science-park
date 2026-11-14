@@ -3,14 +3,31 @@ import type { LanguageModel } from 'ai';
 import { gatewayProvider, reasoningOptions, type GatewayFailure } from './gateway.server';
 import { Dispatcher, holdUntilDone, type Lane } from './dispatcher';
 
-/** One dispatcher per server process (kept on globalThis so dev hot reloads don't make a second one). */
-const g = globalThis as { __vspDispatcher?: Dispatcher };
-export const localDispatcher = () => {
+/**
+ * One dispatcher per local model, per server process (kept on globalThis so dev hot reloads don't
+ * make a second one). Each model has its own queue: the junior model's Guard calls never wait
+ * behind the senior model's Matcher batches.
+ */
+const g = globalThis as { __vspDispatchers?: Map<string, Dispatcher> };
+export const localDispatcher = (model = process.env['OLLAMA_MODEL'] ?? '') => {
+  const all = (g.__vspDispatchers ??= new Map());
+  let d = all.get(model);
   // instanceof: after a dev hot reload of dispatcher.ts the class changes, so a fresh one is made.
-  if (!(g.__vspDispatcher instanceof Dispatcher))
-    g.__vspDispatcher = new Dispatcher(Math.max(1, Number(process.env['LOCAL_AI_SLOTS'] ?? 1)), Date.now, 2000);
-  return g.__vspDispatcher;
+  if (!(d instanceof Dispatcher)) {
+    d = new Dispatcher(Math.max(1, Number(process.env['LOCAL_AI_SLOTS'] ?? 1)), Date.now, 2000);
+    all.set(model, d);
+  }
+  return d;
 };
+
+/**
+ * Option C: a small "junior" model for quick, narrow jobs, next to the "senior" model.
+ * - senior (OLLAMA_MODEL): Profiler, Matcher, Assistant answers.
+ * - junior (OLLAMA_JUNIOR_MODEL): the Guard's one-word classification. Empty = use the senior.
+ */
+export type Tier = 'senior' | 'junior';
+export const localModelName = (tier: Tier = 'senior') =>
+  (tier === 'junior' && process.env['OLLAMA_JUNIOR_MODEL']) || process.env['OLLAMA_MODEL'] || '';
 
 /**
  * One switch for every agent's model.
@@ -25,6 +42,8 @@ export type AgentModel = {
   state: { failure?: GatewayFailure; waitedMs?: number };
   runId: () => string | undefined;
   local: boolean;
+  /** The model that answers, e.g. "qwen2.5:3b", for the run log. */
+  name: string;
 };
 
 export const isLocalAi = () => !!process.env['OLLAMA_MODEL'];
@@ -53,9 +72,10 @@ function withReplyCap(init: RequestInit | undefined, lane: Lane): RequestInit | 
 /**
  * `lane` only matters for the local model: 'chat' (Guard, Assistant) goes ahead of 'background'
  * (Profiler, Matcher, boundary tests) in the dispatcher. The hosted gateway runs calls in parallel.
+ * `tier` picks the senior or junior local model (option C); the hosted gateway has one model.
  */
-export function agentModel(runId?: string, lane: Lane = 'background'): AgentModel {
-  const ollamaModel = process.env['OLLAMA_MODEL'];
+export function agentModel(runId?: string, lane: Lane = 'background', tier: Tier = 'senior'): AgentModel {
+  const ollamaModel = isLocalAi() ? localModelName(tier) : '';
   if (ollamaModel) {
     const baseURL = process.env['OLLAMA_BASE_URL'] ?? 'http://localhost:11434/v1';
     const state: { failure?: GatewayFailure; waitedMs?: number } = {};
@@ -65,7 +85,7 @@ export function agentModel(runId?: string, lane: Lane = 'background'): AgentMode
       supportsStructuredOutputs: true,
       fetch: async (input, init) => {
         init = withReplyCap(init, lane);
-        const slot = await localDispatcher().acquire(lane, init?.signal ?? undefined);
+        const slot = await localDispatcher(ollamaModel).acquire(lane, init?.signal ?? undefined);
         state.waitedMs = (state.waitedMs ?? 0) + slot.waitedMs;
         let response: Response;
         try {
@@ -95,8 +115,8 @@ export function agentModel(runId?: string, lane: Lane = 'background'): AgentMode
         return response;
       },
     });
-    return { model: provider.chatModel(ollamaModel), providerOptions: {}, state, runId: () => undefined, local: true };
+    return { model: provider.chatModel(ollamaModel), providerOptions: {}, state, runId: () => undefined, local: true, name: ollamaModel };
   }
   const { provider, state, runId: getRunId } = gatewayProvider(runId);
-  return { model: provider.responses('openai/gpt-6-astra'), providerOptions: reasoningOptions, state, runId: getRunId, local: false };
+  return { model: provider.responses('openai/gpt-6-astra'), providerOptions: reasoningOptions, state, runId: getRunId, local: false, name: 'openai/gpt-6-astra' };
 }

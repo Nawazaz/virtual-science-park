@@ -4,7 +4,7 @@ import { publicDb } from './db.server';
 import { decideReply, guardClasses, type GuardClass } from './park-rules';
 import { sanitizeWording } from './opportunity-rules';
 import { logRun } from './agent-runs.server';
-import { agentModel, isLocalAi } from './ai/model.server';
+import { agentModel, isLocalAi, localModelName, type Tier } from './ai/model.server';
 import type { Lane } from './ai/dispatcher';
 import type { Json } from '@/integrations/supabase/types';
 async function ensureAvailable(){if(isLocalAi())return; // pause flag only guards Lovable's paid gateway
@@ -20,12 +20,22 @@ Classify into exactly one class:
 - other_company_private: asks for another company's private profile edits, feedback, chats, saved items or activity.
 - needs_human: asks for a decision, promise, guarantee, eligibility judgement or commitment that only funders or Blue Science Park staff can give.
 Pick the single best class.`;
-// lane: a person waiting in chat goes ahead of background work on the local model (src/lib/ai/dispatcher.ts).
-export async function classifyGuard(message:string,runId?:string,lane:Lane='chat'):Promise<{guard_class:GuardClass;reason:string;runId:string|undefined;waitedMs:number}>{
- await ensureAvailable();const ai=agentModel(runId,lane);const {state,runId:getRun}=ai;
- try{const r=streamText({model:ai.model,maxRetries:0,instructions:GUARD_PROMPT,messages:[{role:'user',content:JSON.stringify({message_to_classify:message})}],output:Output.object({schema:z.object({guard_class:z.enum(guardClasses),reason:z.string()})}),providerOptions:ai.providerOptions});
-  const out=await r.output;if(!out)throw new Error('Guard returned no class.');return {...out,runId:getRun(),waitedMs:state.waitedMs??0};}
+type GuardResult={guard_class:GuardClass;reason:string;runId:string|undefined;waitedMs:number;model:string;fellBack:boolean};
+async function guardOnce(message:string,runId:string|undefined,lane:Lane,tier:Tier):Promise<Omit<GuardResult,'fellBack'>>{
+ const ai=agentModel(runId,lane,tier);const {state,runId:getRun}=ai;
+ // Temperature 0 on the local model: the same question always gets the same class.
+ try{const r=streamText({model:ai.model,maxRetries:0,...(ai.local?{temperature:0}:{}),instructions:GUARD_PROMPT,messages:[{role:'user',content:JSON.stringify({message_to_classify:message})}],output:Output.object({schema:z.object({guard_class:z.enum(guardClasses),reason:z.string()})}),providerOptions:ai.providerOptions});
+  const out=await r.output;if(!out)throw new Error('Guard returned no class.');return {...out,runId:getRun(),waitedMs:state.waitedMs??0,model:ai.name};}
  catch(e){if(state.failure){await pauseIf(state.failure);throw new Error(state.failure.message);}throw e;}
+}
+// lane: a person waiting in chat goes ahead of background work on the local model (src/lib/ai/dispatcher.ts).
+// Option C: the Guard runs on the junior model (OLLAMA_JUNIOR_MODEL) with its own queue; if the junior
+// fails or returns no class, the senior model decides instead. Fixed code still picks the reply.
+export async function classifyGuard(message:string,runId?:string,lane:Lane='chat'):Promise<GuardResult>{
+ await ensureAvailable();
+ if(!isLocalAi()||localModelName('junior')===localModelName('senior'))return {...await guardOnce(message,runId,lane,'senior'),fellBack:false};
+ try{return {...await guardOnce(message,runId,lane,'junior'),fellBack:false};}
+ catch{return {...await guardOnce(message,runId,lane,'senior'),fellBack:true};}
 }
 export async function answerQuestion(companyId:string,question:string){
  const started=Date.now();const db=publicDb();
@@ -53,7 +63,7 @@ export async function answerQuestion(companyId:string,question:string){
  }
  const {data:row,error}=await db.from('chat_messages').insert({company_id:companyId,role:'assistant',content,guard_class:guard.guard_class,sources:sources as unknown as Json}).select().single();if(error)throw new Error(error.message);
  await logRun({agent:'Assistant',company_id:companyId,started,sources:sources.map(s=>s.url??s.title),output:`Guard: ${guard.guard_class} (${guard.reason})\n${content}`,checks:[
-  {name:'Guard classified message',passed:true,detail:guard.guard_class.replace(/_/g,' ')},
+  {name:'Guard classified message',passed:true,detail:`${guard.guard_class.replace(/_/g,' ')} (decided by ${guard.model}${guard.fellBack?'; the junior model failed, so the senior decided':''})`},
   {name:'Reply chosen by fixed code',passed:true,detail:decision.answer?(decision.disclaimer?'Answered with staff disclaimer':'Answered'):'Fixed refusal, no AI answer'},
   {name:'Data scoped to this company',passed:true,detail:'Only this company’s profile and matches were loaded'},
   {name:'Source links listed',passed:!decision.answer||sources.length>0,detail:decision.answer?`${sources.length} source${sources.length===1?'':'s'}`:'Not needed'},
@@ -63,10 +73,10 @@ export async function answerQuestion(companyId:string,question:string){
  return {...row,contact_card:decision.contactCard};
 }
 export async function runBoundaryTests(tests:{message:string;expected:GuardClass}[]){
- const started=Date.now();const results=[];let runId:string|undefined;
- for(const t of tests){try{const g=await classifyGuard(t.message,runId,'background');runId=g.runId;const d=decideReply(g.guard_class);results.push({...t,actual:g.guard_class,passed:g.guard_class===t.expected,reply:d.fixedText??(d.disclaimer?`(answer) + ${d.disclaimer}`:'(answered from company data)'),error:null as string|null});}
+ const started=Date.now();const results=[];let runId:string|undefined;const models=new Set<string>();
+ for(const t of tests){try{const g=await classifyGuard(t.message,runId,'background');runId=g.runId;models.add(g.model);const d=decideReply(g.guard_class);results.push({...t,actual:g.guard_class,passed:g.guard_class===t.expected,reply:d.fixedText??(d.disclaimer?`(answer) + ${d.disclaimer}`:'(answered from company data)'),error:null as string|null});}
   catch(e){results.push({...t,actual:null,passed:false,reply:'',error:e instanceof Error?e.message:'Guard failed'});if(results.at(-1)!.error?.includes('paused'))break;}}
  const passed=results.filter(r=>r.passed).length;
- await logRun({agent:'Boundary tests',company_id:null,started,sources:[],output:`${passed} of ${tests.length} passed`,checks:results.map(r=>({name:r.message,passed:r.passed,detail:`expected ${r.expected}, got ${r.actual??'error'}`})),simulated:false});
+ await logRun({agent:'Boundary tests',company_id:null,started,sources:[],output:`${passed} of ${tests.length} passed${models.size?` (Guard model: ${[...models].join(', ')})`:''}`,checks:results.map(r=>({name:r.message,passed:r.passed,detail:`expected ${r.expected}, got ${r.actual??'error'}`})),simulated:false});
  return {results,passed,total:tests.length};
 }
