@@ -45,8 +45,9 @@ better profiles and Guard decisions if your hardware allows it: change
    WIP, Kingspan BAGA, Ocean Harvesting, Techinova) and the sample testing items.
 3. Open a **New query**, paste the whole of
    [`local/companies-verified.sql`](local/companies-verified.sql) and click
-   **Run**. It fills in the 5 companies' profiles, checked by hand against
-   their public pages (every fact has a quote and a link).
+   **Run**. It adds all 45 member companies with profiles checked against
+   their public pages (every fact has a quote and a link; fields a page
+   doesn't cover are marked Missing).
 4. Open **Project Settings → API keys** and copy the project URL, the
    publishable key and the secret (service role) key.
 
@@ -89,7 +90,7 @@ You can skip step 2 and use the database from your Lovable project:
 Local mode needs no admin key. **Careful:** this is the live database the jury
 sees, so profiles you build or rebuild locally replace what the demo shows.
 
-To put the 5 checked company profiles into this database, run this once (it
+To put the 45 checked company profiles into this database, run this once (it
 uses the app's own key, so no SQL editor is needed):
 
 ```bash

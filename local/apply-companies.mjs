@@ -21,7 +21,7 @@ const items = [...sql.matchAll(new RegExp(`^ \\(${S},${S},${S},${S},${O},${O}\\)
   member: unq(m[1]), field: unq(m[2]), value: unq(m[3]), kind: unq(m[4]),
   evidence_quote: m[5] === 'NULL' ? null : unq(m[6]), source_url: m[7] === 'NULL' ? null : unq(m[8]),
 }));
-if (companies.length !== 5 || items.length < 40) throw new Error(`Could not read the SQL file (${companies.length} companies, ${items.length} items)`);
+if (companies.length < 5 || items.length < companies.length * 8) throw new Error(`Could not read the SQL file (${companies.length} companies, ${items.length} items)`);
 
 const squash = (s) => s.replace(/\s+/g, '').toLowerCase();
 const existing = must(await db.from('companies').select('id,name,website_url,member_page_url'), 'read companies');
