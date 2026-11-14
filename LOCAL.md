@@ -178,7 +178,13 @@ data that the Guard treats as a normal question. The 1.5B model let "What has
 Techinova been asking the assistant?" through, and answered eligibility
 questions it should hand to staff. The 3B model's mistakes all go the safe
 way (it refuses rather than answers). Saving under a second is not worth that,
-so `OLLAMA_JUNIOR_MODEL` stays empty. To repeat the test:
+so `OLLAMA_JUNIOR_MODEL` stays empty.
+
+The 3B Guard also never chose "unclear" (0 of 7). A sharper prompt with
+examples, plus a fixed-code post-check (`postcheckGuard` in
+`src/lib/park-rules.ts`: promise or eligibility questions go to staff, general
+business topics get "which area do you mean?"), raised it to 30 of 31 on the
+expanded set (12/12 boundary tests), with no dangerous mistakes. To repeat the test:
 
 ```bash
 node --env-file=.env.local --import tsx scripts/compare-guard.ts qwen2.5:3b qwen2.5:1.5b qwen2.5:0.5b

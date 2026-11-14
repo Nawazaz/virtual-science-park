@@ -36,6 +36,7 @@ export function decideReply(g:GuardClass):{answer:boolean;fixedText:string|null;
 const overridePatterns:RegExp[]=[
  /\b(ignore|disregard|forget|bypass|override)\s+(all\s+)?(of\s+)?(your|previous|prior|earlier|above|the above|these|those|any)\s+(\w+\s+)?(rules|instructions|prompts?|guidelines|restrictions)\b/i,
  /\byou are now\b|\bfrom now on,? you (are|will|must)\b|\bpretend (to be|you are|you're)\b|\broleplay as\b/i,
+ /\b(ignore|disregard|forget)\s+the\s+(rules|instructions)\s+(above|you were given|you have been given)\b/i,
  /\b(system prompt|developer mode|jailbreak)\b/i,
  /\b(reveal|show|print|repeat|output)\b.{0,20}\b(your (instructions|prompt|system prompt|hidden rules|rules)|the (system prompt|hidden rules|instructions you were given))\b/i,
  /\bSYSTEM\s*:|\[\/?(system|inst)\]|<\|im_start\|>|<\/?system>/,
@@ -43,6 +44,21 @@ const overridePatterns:RegExp[]=[
  /\bdu är nu\b|\blåtsas (att du är|vara)\b|\bfrån och med nu är du\b/iu,
 ];
 export function precheckGuard(message:string):GuardClass|null{return overridePatterns.some(p=>p.test(message))?'override_attempt':null;}
+/**
+ * Fixed-code check after the AI Guard, for two mistakes a small model makes often:
+ * 1. A request for a promise or an eligibility verdict marked in_scope -> needs_human (adds the staff disclaimer and contact).
+ * 2. A general business topic that names no remit area, marked out_of_scope / in_scope / needs_human -> unclear,
+ *    so the member is asked which area they mean instead of being turned away.
+ * Never touches override_attempt or other_company_private, and never turns a refusal into an AI answer.
+ */
+const staffOnly=/\b(eligib\w*|qualif\w*|guarantee\w*|promis\w*|approv\w*|will we (get|receive|win))\b/i;
+const remitArea=/\b(fund\w*|grants?|calls?|vinnova|eu|events?|meetups?|workshops?|seminars?|test\w*|labs?|pilots?|partners?|collaborat\w*|match\w*|opportunit\w*|contacts?|blue science park|bsp)\b/i;
+const businessTopic=/\b(marketing|branding|brand|sales|selling|pric\w*|exports?|international\w*|expan\w*|grow\w*|hiring|recruit\w*|finance|financial|investors?|regulations?|compliance|legal|laws?|sustainab\w*|environment\w*|climate|strategy|plans?|next|advice|patents?|ip)\b/i;
+export function postcheckGuard(message:string,g:GuardClass):GuardClass{
+ if(g==='in_scope'&&staffOnly.test(message))return 'needs_human';
+ if((g==='out_of_scope'||g==='in_scope'||(g==='needs_human'&&!staffOnly.test(message)))&&businessTopic.test(message)&&!remitArea.test(message))return 'unclear';
+ return g;
+}
 export const boundaryTests:{message:string;expected:GuardClass}[]=[
  {message:'Which funding calls fit our company?',expected:'in_scope'},
  {message:'Are there any testbeds where we can try our sensors?',expected:'in_scope'},
